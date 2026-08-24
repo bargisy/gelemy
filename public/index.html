@@ -75,6 +75,9 @@
             </div>
             <ul id="rep-projects" class="divide-y divide-gray-100 text-sm"></ul>
           </div>
+          
+          <!-- New Transaction History Section -->
+          <div id="rep-transactions" class="mt-6 pt-2"></div>
         </div>
       </div>
 
@@ -97,6 +100,19 @@
               </div>
             </label>
           </div>
+
+          <!-- Date and Time Fields -->
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+              <input type="date" id="entry-date" required class="w-full border-gray-300 border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-[#009EFF] outline-none bg-white shadow-sm">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Time</label>
+              <input type="time" id="entry-time" required class="w-full border-gray-300 border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-[#009EFF] outline-none bg-white shadow-sm">
+            </div>
+          </div>
+
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Project</label>
             <select id="project" required class="w-full border-gray-300 border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-[#009EFF] outline-none bg-white shadow-sm"></select>
@@ -188,11 +204,22 @@
     let projects = JSON.parse(localStorage.getItem('tracker_projects')) || ["General"];
     let offlineQueue = JSON.parse(localStorage.getItem('tracker_offline_queue')) || [];
 
+    // Helper to set entry form date/time to right now
+    function setEntryDefaults() {
+      const now = new Date();
+      const offset = now.getTimezoneOffset() * 60000;
+      const localISOTime = (new Date(Date.now() - offset)).toISOString();
+      
+      document.getElementById('entry-date').value = localISOTime.split('T')[0];
+      document.getElementById('entry-time').value = localISOTime.split('T')[1].substring(0, 5);
+    }
+
     window.onload = () => {
       const today = new Date();
       document.getElementById('report-start').value = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
       document.getElementById('report-end').value = today.toISOString().split('T')[0];
       
+      setEntryDefaults();
       renderProjects();
       
       tokenClient = google.accounts.oauth2.initTokenClient({
@@ -227,6 +254,8 @@
       });
       document.getElementById(`nav-${tabName}`).className = "flex-1 py-4 text-sm font-medium text-[#1A4BAF] border-b-2 border-[#1A4BAF] transition-colors";
       document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+      
+      if(tabName === 'entry') setEntryDefaults(); // Refresh time when returning to form
     }
 
     function showAppView() {
@@ -451,7 +480,7 @@
         data: [{ startRow: 0, startColumn: 0, rowData: [{ values: [
           { userEnteredValue: { stringValue: "Date" } }, { userEnteredValue: { stringValue: "Project" } },
           { userEnteredValue: { stringValue: "Type" } }, { userEnteredValue: { stringValue: "Amount" } },
-          { userEnteredValue: { stringValue: "Notes" } }
+          { userEnteredValue: { stringValue: "Notes" } }, { userEnteredValue: { stringValue: "Time" } }
         ]}]}]
       }));
 
@@ -545,9 +574,9 @@
             body: JSON.stringify({ requests: [{ addSheet: { properties: { title: val } } }] })
           });
           
-          await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'${val}'!A1:E1?valueInputOption=USER_ENTERED`, {
+          await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'${val}'!A1:F1?valueInputOption=USER_ENTERED`, {
             method: "PUT", headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ values: [["Date", "Project", "Type", "Amount", "Notes"]] })
+            body: JSON.stringify({ values: [["Date", "Project", "Type", "Amount", "Notes", "Time"]] })
           });
 
           projects.push(val);
@@ -612,7 +641,7 @@
       }
     }
 
-    // --- TRANSACTION LOGIC (MULTI-TAB) ---
+    // --- TRANSACTION LOGIC (MULTI-TAB WITH TIME) ---
     async function syncOfflineQueue() {
       if (offlineQueue.length === 0 || !navigator.onLine || !accessToken || !spreadsheetId) return;
 
@@ -626,7 +655,7 @@
         const targetTab = row[1]; 
         
         try {
-          const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'${targetTab}'!A:E:append?valueInputOption=USER_ENTERED`, {
+          const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'${targetTab}'!A:F:append?valueInputOption=USER_ENTERED`, {
             method: "POST", headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
             body: JSON.stringify({ values: [row] }),
           });
@@ -663,18 +692,19 @@
       const typeStr = document.querySelector('input[name="tx_type"]:checked').value;
       
       const row = [
-        new Date().toISOString().split("T")[0], 
+        document.getElementById('entry-date').value, 
         targetTab,
         typeStr, 
         parseFloat(document.getElementById('amount').value), 
-        document.getElementById('notes').value
+        document.getElementById('notes').value,
+        document.getElementById('entry-time').value
       ];
 
       if (!navigator.onLine) {
         queueLocally(row, statusMsg);
       } else {
         try {
-          const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'${targetTab}'!A:E:append?valueInputOption=USER_ENTERED`, {
+          const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'${targetTab}'!A:F:append?valueInputOption=USER_ENTERED`, {
             method: "POST", headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
             body: JSON.stringify({ values: [row] }),
           });
@@ -687,11 +717,12 @@
         }
       }
       document.getElementById('entry-form').reset();
+      setEntryDefaults(); // Reset date and time to current after submit
       submitBtn.disabled = false; submitBtn.innerText = "Log Transaction";
       setTimeout(() => { statusMsg.classList.add('hidden'); }, 3000);
     }
 
-    // --- REPORTING LOGIC (MULTI-TAB PARALLEL FETCH) ---
+    // --- REPORTING LOGIC (MULTI-TAB PARALLEL FETCH WITH TRANSACTION HISTORY) ---
     async function generateReport() {
       if (!navigator.onLine) return alert("You must be online to generate a report.");
       
@@ -709,7 +740,7 @@
           throw new Error("No project tabs found in spreadsheet.");
         }
 
-        const rangesQuery = validProjects.map(p => `ranges=${encodeURIComponent(`'${p}'!A2:E`)}`).join('&');
+        const rangesQuery = validProjects.map(p => `ranges=${encodeURIComponent(`'${p}'!A2:F`)}`).join('&');
         const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchGet?${rangesQuery}`, {
           headers: { "Authorization": `Bearer ${accessToken}` }
         });
@@ -724,9 +755,12 @@
         }
         
         let totalIncome = 0; let totalExpense = 0; let projectStats = {};
+        let filteredRows = [];
 
         allRows.forEach(row => {
           if (row[0] >= startStr && row[0] <= endStr) {
+            filteredRows.push(row);
+            
             const amount = parseFloat((row[3] || "0").replace(/[^0-9.-]+/g,"")) || 0;
             const projName = row[1] || "Unknown";
             
@@ -737,6 +771,7 @@
           }
         });
 
+        // Update Summaries
         const net = totalIncome - totalExpense;
         document.getElementById('rep-income').innerText = `$${totalIncome.toFixed(2)}`;
         document.getElementById('rep-expense').innerText = `$${totalExpense.toFixed(2)}`;
@@ -760,6 +795,53 @@
               </li>`;
           }
         }
+
+        // Update Transaction History
+        const txList = document.getElementById('rep-transactions');
+        txList.innerHTML = '<h3 class="text-sm font-bold text-gray-600 uppercase tracking-wider mb-3">Transaction History</h3><div class="space-y-2" id="tx-items"></div>';
+        const txItems = document.getElementById('tx-items');
+
+        if (filteredRows.length === 0) {
+          txItems.innerHTML = '<p class="text-sm text-gray-500 italic">No transactions in this period.</p>';
+        } else {
+          // Sort descending by date and time
+          filteredRows.sort((a, b) => {
+            const dateA = a[0] + ' ' + (a[5] || '00:00');
+            const dateB = b[0] + ' ' + (b[5] || '00:00');
+            return dateB.localeCompare(dateA); 
+          });
+
+          filteredRows.forEach(row => {
+            const date = row[0];
+            const proj = row[1];
+            const type = row[2];
+            const amount = parseFloat((row[3] || "0").replace(/[^0-9.-]+/g,"")) || 0;
+            const notes = row[4] || "No description";
+            const time = row[5] || "";
+            
+            const isIncome = type === "Income";
+            const amountStr = (isIncome ? '+' : '-') + '$' + Math.abs(amount).toFixed(2);
+            
+            let timeFormatted = time;
+            if (time) {
+              const [h, m] = time.split(':');
+              const ampm = h >= 12 ? 'PM' : 'AM';
+              const h12 = h % 12 || 12;
+              timeFormatted = `${h12}:${m} ${ampm}`;
+            }
+
+            txItems.innerHTML += `
+              <div class="bg-white p-3 rounded-lg border border-gray-100 shadow-sm flex justify-between items-center">
+                <div class="flex-1 min-w-0 pr-4">
+                  <p class="font-bold text-sm text-gray-800 truncate">${notes}</p>
+                  <p class="text-xs text-gray-500 truncate">${date} ${timeFormatted ? 'at ' + timeFormatted : ''} &bull; ${proj}</p>
+                </div>
+                <span class="font-bold text-sm ${isIncome ? 'text-green-600' : 'text-red-600'} shrink-0">${amountStr}</span>
+              </div>
+            `;
+          });
+        }
+
         document.getElementById('report-results').classList.remove('hidden');
       } catch (err) {
         alert("Report Error: " + err.message);
