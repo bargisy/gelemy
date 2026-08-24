@@ -16,6 +16,11 @@
     </div>
     <h1 class="text-2xl font-bold mb-2">Financial Tracker</h1>
     <p class="text-gray-500 mb-8">Log daily project income and expenses directly into a secure Google Sheet.</p>
+    
+    <div class="bg-yellow-50 text-yellow-800 text-xs p-3 rounded-lg mb-6 text-left border border-yellow-200">
+      <strong>Important:</strong> On the next screen, you MUST check all permission boxes for Google Drive and Sheets, or cross-device syncing will fail.
+    </div>
+
     <button id="auth-btn" class="w-full bg-[#1A4BAF] hover:bg-[#009EFF] text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2">
       Connect Google Account
     </button>
@@ -125,6 +130,7 @@
           </div>
           <ul id="project-list" class="space-y-2 max-h-60 overflow-y-auto pr-1"></ul>
         </div>
+        
         <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm space-y-3">
           <h3 class="text-lg font-bold text-gray-800">Database Options</h3>
           <a id="sheet-link" href="#" target="_blank" class="w-full block text-center bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2.5 rounded-lg transition-colors text-sm">
@@ -133,6 +139,16 @@
           <button onclick="logout()" class="w-full bg-red-50 hover:bg-red-100 text-red-600 font-medium py-2.5 rounded-lg transition-colors text-sm mt-2">
             Disconnect Account
           </button>
+
+          <!-- The Safety Valve: Manual Override -->
+          <div class="mt-6 pt-4 border-t border-gray-100">
+            <label class="block text-sm font-bold text-gray-700 mb-1">Manual Device Sync</label>
+            <p class="text-xs text-gray-500 mb-3">If devices are logging to different sheets, paste the URL of your main Google Sheet here to merge them.</p>
+            <input type="text" id="manual-sheet-url" placeholder="https://docs.google.com/spreadsheets/d/..." class="w-full border-gray-300 border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#009EFF] mb-2">
+            <button onclick="linkManualSheet()" id="btn-manual-link" class="w-full bg-gray-800 hover:bg-gray-900 text-white font-medium py-2 rounded-lg transition-colors text-sm">
+              Link Sheet
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -141,7 +157,6 @@
   <script>
     // --- CONFIGURATION ---
     const CLIENT_ID = "989585036388-a9gvr4po1ol1c4urh25iegcc0cirtc06.apps.googleusercontent.com"; 
-    // ADDED: drive.appdata scope to access the hidden config folder for cross-device syncing
     const SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets.readonly https://www.googleapis.com/auth/drive.appdata"; 
     
     let tokenClient;
@@ -152,14 +167,12 @@
     let offlineQueue = JSON.parse(localStorage.getItem('tracker_offline_queue')) || [];
 
     window.onload = () => {
-      // 1. Initialize Report Dates
       const today = new Date();
       document.getElementById('report-start').value = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
       document.getElementById('report-end').value = today.toISOString().split('T')[0];
       
       renderProjects();
       
-      // 2. Initialize Token Client
       tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID,
         scope: SCOPES,
@@ -167,7 +180,6 @@
           if (response.error) return console.error(response);
           accessToken = response.access_token;
           
-          // Cache the token and its precise expiration time (subtracting 1 minute as a safety buffer)
           const expiry = Date.now() + (response.expires_in * 1000) - 60000;
           localStorage.setItem('tracker_auth_token', JSON.stringify({ token: accessToken, expiry }));
           
@@ -179,13 +191,12 @@
       document.getElementById('entry-form').onsubmit = appendTransaction;
       window.addEventListener('online', syncOfflineQueue);
 
-      // 3. Auto-Login Check on Page Refresh
       const cachedAuth = JSON.parse(localStorage.getItem('tracker_auth_token'));
       if (cachedAuth && cachedAuth.token && cachedAuth.expiry > Date.now()) {
         accessToken = cachedAuth.token;
-        initializeDatabase(); // Skip login screen entirely!
+        initializeDatabase(); 
       }
-    };
+    }
 
     function switchTab(tabName) {
       ['reports', 'entry', 'settings'].forEach(t => {
@@ -208,95 +219,158 @@
       window.location.reload();
     }
 
-    // --- INITIALIZATION & CROSS-DEVICE SYNC LOGIC ---
+    // --- BULLETPROOF INITIALIZATION & SYNC LOGIC ---
     async function initializeDatabase() {
       const btn = document.getElementById('auth-btn');
       btn.innerText = "Syncing with Google Drive...";
       btn.disabled = true;
 
-      // Handle Offline Initial Load
       if (!navigator.onLine && spreadsheetId) {
         showAppView();
         return;
       }
 
       try {
-        // CROSS-DEVICE FIX: Search the hidden appDataFolder for our config file
-        const searchRes = await fetch("https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='tracker_config'&fields=files(id,appProperties)", {
+        // TIER 1: Look for the hardcoded text file in the hidden config folder
+        const query = encodeURIComponent("name='financial_tracker_config.txt' and trashed=false");
+        const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${query}&fields=files(id)`, {
           headers: { "Authorization": `Bearer ${accessToken}` }
         });
         const searchData = await searchRes.json();
 
-        if (searchData.files && searchData.files.length > 0 && searchData.files[0].appProperties) {
-          // File found! Another device already created the master sheet.
-          spreadsheetId = searchData.files[0].appProperties.spreadsheetId;
-          localStorage.setItem("financial_tracker_sheet_id", spreadsheetId);
-          await fetchProjects();
+        if (searchData.files && searchData.files.length > 0) {
+          // File found! Read the raw ID from its contents
+          const fileId = searchData.files[0].id;
+          const contentRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+            headers: { "Authorization": `Bearer ${accessToken}` }
+          });
+          const cloudId = await contentRes.text();
+          
+          if (cloudId && cloudId.length > 20) {
+            spreadsheetId = cloudId.trim();
+            localStorage.setItem("financial_tracker_sheet_id", spreadsheetId);
+            await fetchProjects();
+            showAppView();
+            syncOfflineQueue();
+            return; // Successful sync across devices
+          }
+        }
+
+        // TIER 2: Orphaned Sheet Adoption. If config file is missing, look for ANY sheet we previously made
+        const sheetQuery = encodeURIComponent("name='Daily Financial Tracker' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false");
+        const oldSheetRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${sheetQuery}&fields=files(id)`, {
+          headers: { "Authorization": `Bearer ${accessToken}` }
+        });
+        const oldSheetData = await oldSheetRes.json();
+
+        if (oldSheetData.files && oldSheetData.files.length > 0) {
+          // Adopt the oldest/existing one instead of creating a new one
+          spreadsheetId = oldSheetData.files[0].id;
         } else {
-          // No config file found. This is a brand new user across all devices.
+          // TIER 3: Brand new account, create from scratch
           await createMasterSheet();
         }
-        
+
+        // Write the finalized ID to the hidden config folder so other devices find it instantly
+        await saveConfigToCloud(spreadsheetId);
+        localStorage.setItem("financial_tracker_sheet_id", spreadsheetId);
+        await fetchProjects();
         showAppView();
         syncOfflineQueue();
+
       } catch (err) {
-        console.error("Auth expired or network error.", err);
+        console.error("Initialization error:", err);
         localStorage.removeItem('tracker_auth_token');
         btn.innerText = "Connect Google Account";
         btn.disabled = false;
-        
-        // Show login view if token was invalid
         document.getElementById('landing-view').classList.remove('hidden');
         document.getElementById('app-view').classList.add('hidden');
       }
     }
 
+    async function saveConfigToCloud(id) {
+      const query = encodeURIComponent("name='financial_tracker_config.txt' and trashed=false");
+      const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${query}&fields=files(id)`, {
+        headers: { "Authorization": `Bearer ${accessToken}` }
+      });
+      const searchData = await searchRes.json();
+      
+      let fileId;
+      if (searchData.files && searchData.files.length > 0) {
+        fileId = searchData.files[0].id;
+      } else {
+        // Create an empty file first
+        const createRes = await fetch("https://www.googleapis.com/drive/v3/files", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ name: 'financial_tracker_config.txt', parents: ['appDataFolder'] })
+        });
+        const createdFile = await createRes.json();
+        fileId = createdFile.id;
+      }
+      
+      // Patch the file with the string ID
+      await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+        method: "PATCH",
+        headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "text/plain" },
+        body: id
+      });
+    }
+
     async function createMasterSheet() {
       const defaultProjects = ["General", "CNC Furniture Design", "Frappe SaaS", "Shopify Stores"];
-      
-      // 1. Create the Master Sheet
       const response = await fetch("https://sheets.googleapis.com/v4/spreadsheets", {
         method: "POST",
         headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           properties: { title: "Daily Financial Tracker" },
           sheets: [
-            {
-              properties: { title: "Transactions" },
-              data: [{ startRow: 0, startColumn: 0, rowData: [{ values: [
-                { userEnteredValue: { stringValue: "Date" } },
-                { userEnteredValue: { stringValue: "Project" } },
-                { userEnteredValue: { stringValue: "Type" } },
-                { userEnteredValue: { stringValue: "Amount" } },
-                { userEnteredValue: { stringValue: "Notes" } }
-              ]}]}]
-            },
-            {
-              properties: { title: "Settings" },
-              data: [{ startRow: 0, startColumn: 0, rowData: defaultProjects.map(p => ({
-                values: [{ userEnteredValue: { stringValue: p } }]
-              }))}]
-            }
+            { properties: { title: "Transactions" }, data: [{ startRow: 0, startColumn: 0, rowData: [{ values: [
+              { userEnteredValue: { stringValue: "Date" } }, { userEnteredValue: { stringValue: "Project" } },
+              { userEnteredValue: { stringValue: "Type" } }, { userEnteredValue: { stringValue: "Amount" } },
+              { userEnteredValue: { stringValue: "Notes" } }
+            ]}]}]},
+            { properties: { title: "Settings" }, data: [{ startRow: 0, startColumn: 0, rowData: defaultProjects.map(p => ({
+              values: [{ userEnteredValue: { stringValue: p } }]
+            }))}]}
           ]
         })
       });
       const data = await response.json();
       spreadsheetId = data.spreadsheetId;
-      
-      // 2. CROSS-DEVICE FIX: Save the ID to the hidden appDataFolder
-      await fetch("https://www.googleapis.com/drive/v3/files", {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: 'tracker_config',
-          parents: ['appDataFolder'],
-          appProperties: { spreadsheetId: spreadsheetId }
-        })
-      });
-
       projects = defaultProjects;
-      localStorage.setItem("financial_tracker_sheet_id", spreadsheetId);
-      updateProjectCache();
+    }
+
+    // --- MANUAL SYNC OVERRIDE ---
+    async function linkManualSheet() {
+      const input = document.getElementById('manual-sheet-url').value.trim();
+      const btn = document.getElementById('btn-manual-link');
+      
+      // Extract ID from URL
+      const match = input.match(/\/d\/([a-zA-Z0-9-_]+)/);
+      if (!match || !match[1]) {
+        alert("Invalid Google Sheet URL.");
+        return;
+      }
+      
+      const newId = match[1];
+      btn.innerText = "Linking...";
+      btn.disabled = true;
+
+      try {
+        await saveConfigToCloud(newId);
+        spreadsheetId = newId;
+        localStorage.setItem("financial_tracker_sheet_id", newId);
+        await fetchProjects();
+        alert("Success! Device is now linked to the provided sheet.");
+        showAppView();
+      } catch (err) {
+        alert("Failed to link. Make sure you have permission to access that sheet.");
+      }
+      
+      btn.innerText = "Link Sheet";
+      btn.disabled = false;
+      document.getElementById('manual-sheet-url').value = '';
     }
 
     // --- PROJECT MANAGEMENT LOGIC ---
@@ -323,35 +397,27 @@
     async function saveProjectsToCloud() {
       const btn = document.getElementById('add-proj-btn');
       btn.innerText = "..."; btn.disabled = true;
-
       try {
         await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Settings!A:A:clear`, {
-          method: "POST",
-          headers: { "Authorization": `Bearer ${accessToken}` }
+          method: "POST", headers: { "Authorization": `Bearer ${accessToken}` }
         });
-
         const values = projects.map(p => [p]);
         await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Settings!A:A?valueInputOption=USER_ENTERED`, {
-          method: "PUT",
-          headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
+          method: "PUT", headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
           body: JSON.stringify({ values })
         });
       } catch (err) {
         alert("Failed to sync project list to the cloud, but saved locally.");
       }
-      
       btn.innerText = "Add"; btn.disabled = false;
     }
 
     function renderProjects() {
       const select = document.getElementById('project');
       const list = document.getElementById('project-list');
-      
       const currentSelection = select.value;
       
-      select.innerHTML = '';
-      list.innerHTML = '';
-      
+      select.innerHTML = ''; list.innerHTML = '';
       projects.forEach((p, i) => {
         select.add(new Option(p, p));
         list.innerHTML += `
@@ -363,7 +429,6 @@
             </div>
           </li>`;
       });
-      
       if (projects.includes(currentSelection)) select.value = currentSelection;
     }
 
@@ -371,17 +436,14 @@
       const input = document.getElementById('new-project-name');
       const val = input.value.trim();
       if (val && !projects.includes(val)) {
-        projects.push(val);
-        input.value = '';
-        updateProjectCache();
+        projects.push(val); input.value = ''; updateProjectCache();
         if (navigator.onLine) await saveProjectsToCloud();
       }
     }
 
     async function deleteProject(index) {
       if(confirm(`Delete "${projects[index]}"?`)) {
-        projects.splice(index, 1);
-        updateProjectCache();
+        projects.splice(index, 1); updateProjectCache();
         if (navigator.onLine) await saveProjectsToCloud();
       }
     }
@@ -389,8 +451,7 @@
     async function renameProject(index) {
       const newName = prompt("Rename project:", projects[index]);
       if(newName && newName.trim() !== "") {
-        projects[index] = newName.trim();
-        updateProjectCache();
+        projects[index] = newName.trim(); updateProjectCache();
         if (navigator.onLine) await saveProjectsToCloud();
       }
     }
@@ -408,23 +469,16 @@
         const row = offlineQueue[0];
         try {
           const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Transactions!A:E:append?valueInputOption=USER_ENTERED`, {
-            method: "POST",
-            headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
+            method: "POST", headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
             body: JSON.stringify({ values: [row] }),
           });
-          
           if (response.ok) {
-            offlineQueue.shift();
-            localStorage.setItem('tracker_offline_queue', JSON.stringify(offlineQueue));
-          } else {
-            throw new Error("API Error during sync");
-          }
+            offlineQueue.shift(); localStorage.setItem('tracker_offline_queue', JSON.stringify(offlineQueue));
+          } else throw new Error("API Error");
         } catch (err) {
-          console.error("Sync failed, will retry later.");
           break;
         }
       }
-
       if (offlineQueue.length === 0) {
         statusMsg.innerText = "All offline entries synced!";
         statusMsg.className = "text-sm text-center font-medium mt-2 text-green-600 block";
@@ -444,17 +498,13 @@
       const submitBtn = document.getElementById('submit-btn');
       const statusMsg = document.getElementById('status-msg');
       
-      submitBtn.disabled = true; 
-      submitBtn.innerText = "Processing...";
+      submitBtn.disabled = true; submitBtn.innerText = "Processing...";
       statusMsg.classList.remove('hidden');
 
       const typeStr = document.querySelector('input[name="tx_type"]:checked').value;
       const row = [
-        new Date().toISOString().split("T")[0],
-        document.getElementById('project').value,
-        typeStr,
-        parseFloat(document.getElementById('amount').value),
-        document.getElementById('notes').value
+        new Date().toISOString().split("T")[0], document.getElementById('project').value,
+        typeStr, parseFloat(document.getElementById('amount').value), document.getElementById('notes').value
       ];
 
       if (!navigator.onLine) {
@@ -462,35 +512,26 @@
       } else {
         try {
           const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Transactions!A:E:append?valueInputOption=USER_ENTERED`, {
-            method: "POST",
-            headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
+            method: "POST", headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
             body: JSON.stringify({ values: [row] }),
           });
-          
           if (response.ok) {
             statusMsg.innerText = "Entry logged successfully!";
             statusMsg.className = "text-sm text-center font-medium mt-2 text-green-600 block";
-          } else {
-            throw new Error("API Error"); 
-          }
+          } else throw new Error("API Error"); 
         } catch (err) {
           queueLocally(row, statusMsg);
         }
       }
-
       document.getElementById('entry-form').reset();
-      submitBtn.disabled = false; 
-      submitBtn.innerText = "Log Transaction";
+      submitBtn.disabled = false; submitBtn.innerText = "Log Transaction";
       setTimeout(() => { statusMsg.classList.add('hidden'); }, 3000);
     }
 
     // --- REPORTING LOGIC ---
     async function generateReport() {
-      if (!navigator.onLine) {
-        alert("You must be online to generate a report.");
-        return;
-      }
-
+      if (!navigator.onLine) return alert("You must be online to generate a report.");
+      
       const btn = document.getElementById('btn-generate-report');
       const startStr = document.getElementById('report-start').value;
       const endStr = document.getElementById('report-end').value;
