@@ -1,28 +1,30 @@
 <!DOCTYPE html>
-<!-- PWA Meta Tags -->
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1A4BAF">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="apple-touch-icon" href="icon-192.png">
-
-<!-- Register Service Worker -->
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js')
-        .then(reg => console.log('Service Worker registered', reg))
-        .catch(err => console.error('Service Worker registration failed', err));
-    });
-  }
-</script>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Financial Tracker</title>
+  
+  <!-- PWA Meta Tags -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1A4BAF">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="icon-192.png">
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <!-- Register Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('Service Worker registered', reg))
+          .catch(err => console.error('Service Worker registration failed', err));
+      });
+    }
+  </script>
 </head>
 <body class="bg-gray-100 text-gray-900 font-sans min-h-screen flex justify-center pb-20 sm:p-4">
 
@@ -92,8 +94,7 @@
             </div>
             <ul id="rep-projects" class="divide-y divide-gray-100 text-sm"></ul>
           </div>
-          
-          <!-- New Transaction History Section -->
+
           <div id="rep-transactions" class="mt-6 pt-2"></div>
         </div>
       </div>
@@ -118,7 +119,6 @@
             </label>
           </div>
 
-          <!-- Date and Time Fields -->
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
@@ -239,28 +239,40 @@
       setEntryDefaults();
       renderProjects();
       
-      tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: SCOPES,
-        callback: async (response) => {
-          if (response.error) return console.error(response);
-          accessToken = response.access_token;
-          
-          const expiry = Date.now() + (response.expires_in * 1000) - 60000;
-          localStorage.setItem('tracker_auth_token', JSON.stringify({ token: accessToken, expiry }));
-          
-          await initializeDatabase();
-        },
-      });
+      // GUARD: Only initialize Google if the script successfully loaded
+      if (typeof google !== 'undefined') {
+        tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: CLIENT_ID,
+          scope: SCOPES,
+          callback: async (response) => {
+            if (response.error) return console.error(response);
+            accessToken = response.access_token;
+            
+            const expiry = Date.now() + (response.expires_in * 1000) - 60000;
+            localStorage.setItem('tracker_auth_token', JSON.stringify({ token: accessToken, expiry }));
+            
+            await initializeDatabase();
+          },
+        });
 
-      document.getElementById('auth-btn').onclick = () => tokenClient.requestAccessToken({ prompt: 'consent' });
+        document.getElementById('auth-btn').onclick = () => tokenClient.requestAccessToken({ prompt: 'consent' });
+      } else {
+        console.warn("Offline: Google Identity script not loaded.");
+        document.getElementById('auth-btn').innerText = "Offline Mode - Reconnect to Auth";
+        document.getElementById('auth-btn').disabled = true;
+      }
+
       document.getElementById('entry-form').onsubmit = appendTransaction;
       window.addEventListener('online', syncOfflineQueue);
 
       const cachedAuth = JSON.parse(localStorage.getItem('tracker_auth_token'));
-      if (cachedAuth && cachedAuth.token && cachedAuth.expiry > Date.now()) {
+      
+      if (cachedAuth && cachedAuth.token && cachedAuth.expiry > Date.now() && typeof google !== 'undefined') {
         accessToken = cachedAuth.token;
         initializeDatabase(); 
+      } else if (!navigator.onLine && spreadsheetId) {
+        // Force offline mode if we have a sheet ID but no internet
+        showAppView();
       }
     }
 
@@ -272,7 +284,7 @@
       document.getElementById(`nav-${tabName}`).className = "flex-1 py-4 text-sm font-medium text-[#1A4BAF] border-b-2 border-[#1A4BAF] transition-colors";
       document.getElementById(`tab-${tabName}`).classList.remove('hidden');
       
-      if(tabName === 'entry') setEntryDefaults(); // Refresh time when returning to form
+      if(tabName === 'entry') setEntryDefaults();
     }
 
     function showAppView() {
@@ -734,12 +746,12 @@
         }
       }
       document.getElementById('entry-form').reset();
-      setEntryDefaults(); // Reset date and time to current after submit
+      setEntryDefaults(); 
       submitBtn.disabled = false; submitBtn.innerText = "Log Transaction";
       setTimeout(() => { statusMsg.classList.add('hidden'); }, 3000);
     }
 
-    // --- REPORTING LOGIC (MULTI-TAB PARALLEL FETCH WITH TRANSACTION HISTORY) ---
+    // --- REPORTING LOGIC ---
     async function generateReport() {
       if (!navigator.onLine) return alert("You must be online to generate a report.");
       
@@ -788,7 +800,6 @@
           }
         });
 
-        // Update Summaries
         const net = totalIncome - totalExpense;
         document.getElementById('rep-income').innerText = `$${totalIncome.toFixed(2)}`;
         document.getElementById('rep-expense').innerText = `$${totalExpense.toFixed(2)}`;
@@ -813,7 +824,6 @@
           }
         }
 
-        // Update Transaction History
         const txList = document.getElementById('rep-transactions');
         txList.innerHTML = '<h3 class="text-sm font-bold text-gray-600 uppercase tracking-wider mb-3">Transaction History</h3><div class="space-y-2" id="tx-items"></div>';
         const txItems = document.getElementById('tx-items');
@@ -821,7 +831,6 @@
         if (filteredRows.length === 0) {
           txItems.innerHTML = '<p class="text-sm text-gray-500 italic">No transactions in this period.</p>';
         } else {
-          // Sort descending by date and time
           filteredRows.sort((a, b) => {
             const dateA = a[0] + ' ' + (a[5] || '00:00');
             const dateB = b[0] + ' ' + (b[5] || '00:00');
