@@ -130,6 +130,9 @@
           <a id="sheet-link" href="#" target="_blank" class="w-full block text-center bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2.5 rounded-lg transition-colors text-sm">
             Open Google Sheet ↗
           </a>
+          <button onclick="logout()" class="w-full bg-red-50 hover:bg-red-100 text-red-600 font-medium py-2.5 rounded-lg transition-colors text-sm mt-2">
+            Disconnect Account
+          </button>
         </div>
       </div>
     </div>
@@ -138,40 +141,50 @@
   <script>
     // --- CONFIGURATION ---
     const CLIENT_ID = "989585036388-a9gvr4po1ol1c4urh25iegcc0cirtc06.apps.googleusercontent.com"; 
-    const SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets.readonly"; 
+    // ADDED: drive.appdata scope to access the hidden config folder for cross-device syncing
+    const SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets.readonly https://www.googleapis.com/auth/drive.appdata"; 
     
     let tokenClient;
     let accessToken = null;
-    let spreadsheetId = null;
+    let spreadsheetId = localStorage.getItem('financial_tracker_sheet_id') || null;
     
-    // Cached state for instant loading and offline support
     let projects = JSON.parse(localStorage.getItem('tracker_projects')) || ["General"];
     let offlineQueue = JSON.parse(localStorage.getItem('tracker_offline_queue')) || [];
 
     window.onload = () => {
-      // Initialize report date pickers
+      // 1. Initialize Report Dates
       const today = new Date();
       document.getElementById('report-start').value = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
       document.getElementById('report-end').value = today.toISOString().split('T')[0];
       
-      // Instantly render cached projects
       renderProjects();
       
+      // 2. Initialize Token Client
       tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID,
         scope: SCOPES,
         callback: async (response) => {
           if (response.error) return console.error(response);
           accessToken = response.access_token;
+          
+          // Cache the token and its precise expiration time (subtracting 1 minute as a safety buffer)
+          const expiry = Date.now() + (response.expires_in * 1000) - 60000;
+          localStorage.setItem('tracker_auth_token', JSON.stringify({ token: accessToken, expiry }));
+          
           await initializeDatabase();
         },
       });
 
       document.getElementById('auth-btn').onclick = () => tokenClient.requestAccessToken({ prompt: 'consent' });
       document.getElementById('entry-form').onsubmit = appendTransaction;
-      
-      // Auto-sync when device comes back online
       window.addEventListener('online', syncOfflineQueue);
+
+      // 3. Auto-Login Check on Page Refresh
+      const cachedAuth = JSON.parse(localStorage.getItem('tracker_auth_token'));
+      if (cachedAuth && cachedAuth.token && cachedAuth.expiry > Date.now()) {
+        accessToken = cachedAuth.token;
+        initializeDatabase(); // Skip login screen entirely!
+      }
     };
 
     function switchTab(tabName) {
@@ -189,52 +202,59 @@
       document.getElementById('sheet-link').href = `https://docs.google.com/spreadsheets/d/${spreadsheetId}`;
     }
 
-    // --- INITIALIZATION & SYNC LOGIC ---
+    function logout() {
+      localStorage.removeItem('tracker_auth_token');
+      localStorage.removeItem('financial_tracker_sheet_id');
+      window.location.reload();
+    }
+
+    // --- INITIALIZATION & CROSS-DEVICE SYNC LOGIC ---
     async function initializeDatabase() {
-      const cachedId = localStorage.getItem("financial_tracker_sheet_id");
-      
-      if (cachedId) {
-        // INSTANT LOAD: Fast path using cached ID
-        spreadsheetId = cachedId;
+      const btn = document.getElementById('auth-btn');
+      btn.innerText = "Syncing with Google Drive...";
+      btn.disabled = true;
+
+      // Handle Offline Initial Load
+      if (!navigator.onLine && spreadsheetId) {
         showAppView();
-        
-        // Background sync
-        fetchProjects();
-        syncOfflineQueue();
-      } else {
-        // FIRST LOAD: Search Drive or Create Sheet
-        const btn = document.getElementById('auth-btn');
-        btn.innerText = "Syncing with Google Drive...";
-        btn.disabled = true;
+        return;
+      }
 
-        try {
-          const query = encodeURIComponent("name='Daily Financial Tracker' and trashed=false");
-          const driveRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}`, {
-            headers: { "Authorization": `Bearer ${accessToken}` }
-          });
-          const driveData = await driveRes.json();
+      try {
+        // CROSS-DEVICE FIX: Search the hidden appDataFolder for our config file
+        const searchRes = await fetch("https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='tracker_config'&fields=files(id,appProperties)", {
+          headers: { "Authorization": `Bearer ${accessToken}` }
+        });
+        const searchData = await searchRes.json();
 
-          if (driveData.files && driveData.files.length > 0) {
-            spreadsheetId = driveData.files[0].id;
-            localStorage.setItem("financial_tracker_sheet_id", spreadsheetId);
-            await fetchProjects();
-          } else {
-            await createMasterSheet();
-          }
-          
-          showAppView();
-          syncOfflineQueue();
-        } catch (err) {
-          alert("Error syncing with Drive. Please check your connection.");
-          btn.innerText = "Connect Google Account";
-          btn.disabled = false;
+        if (searchData.files && searchData.files.length > 0 && searchData.files[0].appProperties) {
+          // File found! Another device already created the master sheet.
+          spreadsheetId = searchData.files[0].appProperties.spreadsheetId;
+          localStorage.setItem("financial_tracker_sheet_id", spreadsheetId);
+          await fetchProjects();
+        } else {
+          // No config file found. This is a brand new user across all devices.
+          await createMasterSheet();
         }
+        
+        showAppView();
+        syncOfflineQueue();
+      } catch (err) {
+        console.error("Auth expired or network error.", err);
+        localStorage.removeItem('tracker_auth_token');
+        btn.innerText = "Connect Google Account";
+        btn.disabled = false;
+        
+        // Show login view if token was invalid
+        document.getElementById('landing-view').classList.remove('hidden');
+        document.getElementById('app-view').classList.add('hidden');
       }
     }
 
     async function createMasterSheet() {
       const defaultProjects = ["General", "CNC Furniture Design", "Frappe SaaS", "Shopify Stores"];
       
+      // 1. Create the Master Sheet
       const response = await fetch("https://sheets.googleapis.com/v4/spreadsheets", {
         method: "POST",
         headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
@@ -243,33 +263,37 @@
           sheets: [
             {
               properties: { title: "Transactions" },
-              data: [{
-                startRow: 0, startColumn: 0,
-                rowData: [{
-                  values: [
-                    { userEnteredValue: { stringValue: "Date" } },
-                    { userEnteredValue: { stringValue: "Project" } },
-                    { userEnteredValue: { stringValue: "Type" } },
-                    { userEnteredValue: { stringValue: "Amount" } },
-                    { userEnteredValue: { stringValue: "Notes" } }
-                  ]
-                }]
-              }]
+              data: [{ startRow: 0, startColumn: 0, rowData: [{ values: [
+                { userEnteredValue: { stringValue: "Date" } },
+                { userEnteredValue: { stringValue: "Project" } },
+                { userEnteredValue: { stringValue: "Type" } },
+                { userEnteredValue: { stringValue: "Amount" } },
+                { userEnteredValue: { stringValue: "Notes" } }
+              ]}]}]
             },
             {
               properties: { title: "Settings" },
-              data: [{
-                startRow: 0, startColumn: 0,
-                rowData: defaultProjects.map(p => ({
-                  values: [{ userEnteredValue: { stringValue: p } }]
-                }))
-              }]
+              data: [{ startRow: 0, startColumn: 0, rowData: defaultProjects.map(p => ({
+                values: [{ userEnteredValue: { stringValue: p } }]
+              }))}]
             }
           ]
         })
       });
       const data = await response.json();
       spreadsheetId = data.spreadsheetId;
+      
+      // 2. CROSS-DEVICE FIX: Save the ID to the hidden appDataFolder
+      await fetch("https://www.googleapis.com/drive/v3/files", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: 'tracker_config',
+          parents: ['appDataFolder'],
+          appProperties: { spreadsheetId: spreadsheetId }
+        })
+      });
+
       projects = defaultProjects;
       localStorage.setItem("financial_tracker_sheet_id", spreadsheetId);
       updateProjectCache();
@@ -323,7 +347,6 @@
       const select = document.getElementById('project');
       const list = document.getElementById('project-list');
       
-      // Save current selection to restore after re-rendering
       const currentSelection = select.value;
       
       select.innerHTML = '';
@@ -341,9 +364,7 @@
           </li>`;
       });
       
-      if (projects.includes(currentSelection)) {
-        select.value = currentSelection;
-      }
+      if (projects.includes(currentSelection)) select.value = currentSelection;
     }
 
     async function addProject() {
