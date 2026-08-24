@@ -280,7 +280,7 @@
       window.location.reload();
     }
 
-    // --- CUSTOM DRIVE PICKER LOGIC (UPDATED WITH FIX) ---
+    // --- CUSTOM DRIVE PICKER LOGIC ---
     async function openDrivePicker() {
       const modal = document.getElementById('drive-picker-modal');
       const list = document.getElementById('drive-file-list');
@@ -291,11 +291,7 @@
       loader.classList.remove('hidden');
 
       try {
-        // FIX: Simplified query. Because of the drive.file scope, 
-        // the API only returns files this app created anyway.
         const query = encodeURIComponent("trashed=false");
-        
-        // Added spaces=drive to ensure it searches the main drive, not just appData
         const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&spaces=drive&fields=files(id,name,mimeType,createdTime)&orderBy=createdTime desc`, {
           headers: { "Authorization": `Bearer ${accessToken}` }
         });
@@ -303,7 +299,6 @@
         const data = await response.json();
         loader.classList.add('hidden');
 
-        // Filter in JavaScript just to be safe
         const spreadsheets = (data.files || []).filter(f => f.mimeType === 'application/vnd.google-apps.spreadsheet');
 
         if (spreadsheets.length > 0) {
@@ -351,17 +346,22 @@
       alert("Database switched successfully!");
     }
 
-    // --- INITIALIZATION & SYNC LOGIC ---
+    // --- BULLETPROOF INITIALIZATION & SYNC LOGIC ---
     async function initializeDatabase() {
       const btn = document.getElementById('auth-btn');
       btn.innerText = "Syncing with Google Drive...";
       btn.disabled = true;
 
-      if (!navigator.onLine && spreadsheetId) {
+      // FIX 1: THE INSTANT LOAD CACHE
+      // If we already have the ID in this browser, load instantly and skip the Google Drive search entirely!
+      if (spreadsheetId) {
         showAppView();
-        return;
+        fetchProjects();
+        syncOfflineQueue();
+        return; 
       }
 
+      // If we don't have the ID (first time logging in on this device), we search for it.
       try {
         const query = encodeURIComponent("name='financial_tracker_config.txt' and trashed=false");
         const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${query}&fields=files(id)`, {
@@ -386,8 +386,10 @@
           }
         }
 
+        // FIX 2: THE DRIVE SEARCH FIX
+        // Added spaces=drive so the fallback search can actually find the sheet if the config file was missing.
         const sheetQuery = encodeURIComponent("name='Daily Financial Tracker' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false");
-        const oldSheetRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${sheetQuery}&fields=files(id)&orderBy=createdTime asc`, {
+        const oldSheetRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${sheetQuery}&spaces=drive&fields=files(id)&orderBy=createdTime asc`, {
           headers: { "Authorization": `Bearer ${accessToken}` }
         });
         const oldSheetData = await oldSheetRes.json();
@@ -415,30 +417,34 @@
     }
 
     async function saveConfigToCloud(id) {
-      const query = encodeURIComponent("name='financial_tracker_config.txt' and trashed=false");
-      const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${query}&fields=files(id)`, {
-        headers: { "Authorization": `Bearer ${accessToken}` }
-      });
-      const searchData = await searchRes.json();
-      
-      let fileId;
-      if (searchData.files && searchData.files.length > 0) {
-        fileId = searchData.files[0].id;
-      } else {
-        const createRes = await fetch("https://www.googleapis.com/drive/v3/files", {
-          method: "POST",
-          headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ name: 'financial_tracker_config.txt', parents: ['appDataFolder'] })
+      try {
+        const query = encodeURIComponent("name='financial_tracker_config.txt' and trashed=false");
+        const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${query}&fields=files(id)`, {
+          headers: { "Authorization": `Bearer ${accessToken}` }
         });
-        const createdFile = await createRes.json();
-        fileId = createdFile.id;
+        const searchData = await searchRes.json();
+        
+        let fileId;
+        if (searchData.files && searchData.files.length > 0) {
+          fileId = searchData.files[0].id;
+        } else {
+          const createRes = await fetch("https://www.googleapis.com/drive/v3/files", {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ name: 'financial_tracker_config.txt', parents: ['appDataFolder'] })
+          });
+          const createdFile = await createRes.json();
+          fileId = createdFile.id;
+        }
+        
+        await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+          method: "PATCH",
+          headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "text/plain" },
+          body: id
+        });
+      } catch (err) {
+        console.warn("Could not save to appDataFolder. Continuing with local ID.", err);
       }
-      
-      await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
-        method: "PATCH",
-        headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "text/plain" },
-        body: id
-      });
     }
 
     async function createMasterSheet() {
