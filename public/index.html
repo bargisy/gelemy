@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Daily Financial Tracker</title>
+  <title>Financial Tracker</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -11,57 +11,85 @@
 
   <!-- Landing / Login View -->
   <div id="landing-view" class="max-w-md w-full bg-white rounded-xl shadow-lg p-8 text-center transition-all duration-300">
-    <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+    <div class="w-16 h-16 bg-blue-50 text-[#1A4BAF] rounded-full flex items-center justify-center mx-auto mb-6">
       <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
     </div>
     <h1 class="text-2xl font-bold mb-2">Financial Tracker</h1>
     <p class="text-gray-500 mb-8">Log daily project income and expenses directly into a secure Google Sheet.</p>
-    <button id="auth-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2">
+    <button id="auth-btn" class="w-full bg-[#1A4BAF] hover:bg-[#009EFF] text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2">
       Connect Google Account
     </button>
   </div>
 
-  <!-- Dashboard / Data Entry View (Hidden by default) -->
-  <div id="dashboard-view" class="max-w-md w-full bg-white rounded-xl shadow-lg p-8 hidden transition-all duration-300">
+  <!-- Dashboard / Data Entry View -->
+  <div id="dashboard-view" class="max-w-md w-full bg-white rounded-xl shadow-lg p-8 hidden transition-all duration-300 relative">
     <div class="flex justify-between items-center mb-6">
-      <h2 class="text-xl font-bold">New Entry</h2>
-      <a id="sheet-link" href="#" target="_blank" class="text-sm text-blue-600 hover:underline hidden">View Sheet ↗</a>
+      <h2 class="text-xl font-bold text-[#1A4BAF]">New Entry</h2>
+      <a id="sheet-link" href="#" target="_blank" class="text-sm text-[#009EFF] hover:underline hidden">View Sheet ↗</a>
     </div>
 
-    <form id="entry-form" class="space-y-4">
+    <form id="entry-form" class="space-y-5">
+      
+      <!-- Radio Buttons for Type -->
+      <div class="grid grid-cols-2 gap-4">
+        <label class="cursor-pointer">
+          <input type="radio" name="tx_type" value="Income" class="peer sr-only" required>
+          <div class="rounded-xl border-2 border-gray-200 p-4 flex flex-col items-center justify-center gap-2 transition-all peer-checked:border-green-500 peer-checked:bg-green-50 peer-checked:text-green-700 text-gray-400 hover:bg-gray-50">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+            <span class="font-medium">Income</span>
+          </div>
+        </label>
+        <label class="cursor-pointer">
+          <input type="radio" name="tx_type" value="Expense" class="peer sr-only">
+          <div class="rounded-xl border-2 border-gray-200 p-4 flex flex-col items-center justify-center gap-2 transition-all peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:text-red-700 text-gray-400 hover:bg-gray-50">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg>
+            <span class="font-medium">Expense</span>
+          </div>
+        </label>
+      </div>
+
+      <!-- Project Selection -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Project</label>
-        <select id="project" class="w-full border-gray-300 border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
-          <option value="General">General</option>
-          <option value="Project Alpha">Project Alpha</option>
-          <option value="Project Beta">Project Beta</option>
+        <div class="flex justify-between items-center mb-1">
+          <label class="block text-sm font-medium text-gray-700">Project</label>
+          <button type="button" onclick="openProjectManager()" class="text-xs text-gray-500 hover:text-[#009EFF]">Manage Projects</button>
+        </div>
+        <select id="project" required class="w-full border-gray-300 border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-[#009EFF] outline-none bg-white">
+          <!-- Populated by JS -->
         </select>
       </div>
       
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
-          <select id="type" class="w-full border-gray-300 border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
-            <option value="Expense">Expense</option>
-            <option value="Income">Income</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Amount ($)</label>
-          <input type="number" id="amount" step="0.01" required class="w-full border-gray-300 border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="0.00">
-        </div>
+      <!-- Amount & Notes -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Amount ($)</label>
+        <input type="number" id="amount" step="0.01" required class="w-full border-gray-300 border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-[#009EFF] outline-none" placeholder="0.00">
       </div>
 
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Notes / Description</label>
-        <input type="text" id="notes" required class="w-full border-gray-300 border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g., Software license">
+        <input type="text" id="notes" required class="w-full border-gray-300 border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-[#009EFF] outline-none" placeholder="e.g., Software license">
       </div>
 
-      <button type="submit" id="submit-btn" class="w-full bg-gray-900 hover:bg-gray-800 text-white font-medium py-3 px-4 rounded-lg transition-colors mt-6">
+      <button type="submit" id="submit-btn" class="w-full bg-[#1A4BAF] hover:bg-[#009EFF] text-white font-medium py-3 px-4 rounded-lg transition-colors mt-6">
         Log Transaction
       </button>
       <div id="status-msg" class="text-sm text-center font-medium mt-2 hidden"></div>
     </form>
+  </div>
+
+  <!-- Project Management Modal -->
+  <div id="project-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50 p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 relative">
+      <h3 class="text-lg font-bold mb-4">Manage Projects</h3>
+      <div class="flex gap-2 mb-4">
+        <input type="text" id="new-project-name" placeholder="New project name..." class="flex-1 border-gray-300 border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-[#009EFF]">
+        <button onclick="addProject()" class="bg-[#FFD850] text-gray-900 px-4 py-2 rounded-lg font-medium hover:bg-yellow-500 transition">Add</button>
+      </div>
+      <ul id="project-list" class="space-y-2 max-h-48 overflow-y-auto mb-4 border border-gray-100 rounded-lg p-2">
+        <!-- Populated by JS -->
+      </ul>
+      <button onclick="closeProjectManager()" class="w-full bg-gray-100 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-200">Done</button>
+    </div>
   </div>
 
   <script>
@@ -72,19 +100,19 @@
     let accessToken = null;
     let spreadsheetId = localStorage.getItem("financial_tracker_sheet_id");
 
+    // Project Management State
+    let projects = JSON.parse(localStorage.getItem('tracker_projects')) || ['General'];
+
     window.onload = () => {
-      // Initialize GIS OAuth Client
+      renderProjectDropdown();
+      
       tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID,
         scope: SCOPES,
         callback: async (response) => {
-          if (response.error) {
-            console.error(response);
-            return;
-          }
+          if (response.error) return console.error(response);
           accessToken = response.access_token;
           
-          // If no sheet exists in local storage, create one
           if (!spreadsheetId) {
             await createMasterSheet();
           } else {
@@ -93,18 +121,91 @@
         },
       });
 
-      // Bind Auth Button
       document.getElementById('auth-btn').onclick = () => {
         tokenClient.requestAccessToken({ prompt: 'consent' });
       };
 
-      // Bind Form Submission
       document.getElementById('entry-form').onsubmit = async (e) => {
         e.preventDefault();
         await appendTransaction();
       };
     };
 
+    /* --- UI Functions --- */
+    function showDashboard() {
+      document.getElementById('landing-view').classList.add('hidden');
+      document.getElementById('dashboard-view').classList.remove('hidden');
+      
+      const sheetLink = document.getElementById('sheet-link');
+      sheetLink.href = `https://docs.google.com/spreadsheets/d/${spreadsheetId}`;
+      sheetLink.classList.remove('hidden');
+    }
+
+    /* --- Project Management Functions --- */
+    function saveProjects() {
+      localStorage.setItem('tracker_projects', JSON.stringify(projects));
+      renderProjectDropdown();
+      renderProjectModalList();
+    }
+
+    function renderProjectDropdown() {
+      const select = document.getElementById('project');
+      select.innerHTML = '';
+      projects.forEach(p => select.add(new Option(p, p)));
+    }
+
+    function renderProjectModalList() {
+      const list = document.getElementById('project-list');
+      list.innerHTML = '';
+      projects.forEach((p, i) => {
+        const li = document.createElement('li');
+        li.className = "flex justify-between items-center bg-gray-50 p-2 rounded";
+        li.innerHTML = `
+          <span class="text-sm font-medium truncate flex-1">${p}</span>
+          <div class="flex gap-2 ml-2">
+            <button onclick="renameProject(${i})" class="text-xs text-blue-600 hover:underline">Edit</button>
+            <button onclick="deleteProject(${i})" class="text-xs text-red-600 hover:underline">Del</button>
+          </div>
+        `;
+        list.appendChild(li);
+      });
+    }
+
+    function openProjectManager() {
+      renderProjectModalList();
+      document.getElementById('project-modal').classList.remove('hidden');
+    }
+
+    function closeProjectManager() {
+      document.getElementById('project-modal').classList.add('hidden');
+    }
+
+    function addProject() {
+      const input = document.getElementById('new-project-name');
+      const val = input.value.trim();
+      if (val && !projects.includes(val)) {
+        projects.push(val);
+        input.value = '';
+        saveProjects();
+      }
+    }
+
+    function deleteProject(index) {
+      if(confirm(`Delete "${projects[index]}"?`)) {
+        projects.splice(index, 1);
+        saveProjects();
+      }
+    }
+
+    function renameProject(index) {
+      const newName = prompt("Rename project:", projects[index]);
+      if(newName && newName.trim() !== "") {
+        projects[index] = newName.trim();
+        saveProjects();
+      }
+    }
+
+    /* --- Google Sheets API Functions --- */
     async function createMasterSheet() {
       const btn = document.getElementById('auth-btn');
       btn.innerText = "Setting up your database...";
@@ -148,10 +249,13 @@
       submitBtn.disabled = true;
       submitBtn.innerText = "Logging...";
 
+      // Get the checked radio button value
+      const typeStr = document.querySelector('input[name="tx_type"]:checked').value;
+
       const row = [
         new Date().toISOString().split("T")[0],
         document.getElementById('project').value,
-        document.getElementById('type').value,
+        typeStr,
         parseFloat(document.getElementById('amount').value),
         document.getElementById('notes').value
       ];
@@ -183,15 +287,6 @@
       submitBtn.disabled = false;
       submitBtn.innerText = "Log Transaction";
       setTimeout(() => { statusMsg.classList.add('hidden'); }, 3000);
-    }
-
-    function showDashboard() {
-      document.getElementById('landing-view').classList.add('hidden');
-      document.getElementById('dashboard-view').classList.remove('hidden');
-      
-      const sheetLink = document.getElementById('sheet-link');
-      sheetLink.href = `https://docs.google.com/spreadsheets/d/${spreadsheetId}`;
-      sheetLink.classList.remove('hidden');
     }
   </script>
 </body>
