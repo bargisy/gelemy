@@ -137,12 +137,15 @@
             <p id="current-sheet-id" class="text-[10px] text-gray-400 font-mono mt-1"></p>
           </div>
 
-          <div class="flex gap-2">
-            <a id="sheet-link" href="#" target="_blank" class="flex-1 text-center bg-[#1A4BAF] hover:bg-[#009EFF] text-white font-medium py-2 rounded-lg transition-colors text-sm">
+          <div class="grid grid-cols-2 gap-2">
+            <a id="sheet-link" href="#" target="_blank" class="text-center bg-[#1A4BAF] hover:bg-[#009EFF] text-white font-medium py-2 rounded-lg transition-colors text-sm">
               Open Sheet ↗
             </a>
-            <button onclick="openDrivePicker()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 rounded-lg transition-colors text-sm">
-              Find in Drive
+            <button onclick="openDrivePicker()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 rounded-lg transition-colors text-sm">
+              Switch Sheet
+            </button>
+            <button onclick="createNewTrackerManually()" id="btn-create-new" class="col-span-2 bg-green-50 hover:bg-green-100 text-green-700 font-medium py-2 rounded-lg transition-colors text-sm border border-green-200 mt-2">
+              + Create New Database
             </button>
           </div>
 
@@ -158,7 +161,7 @@
   <div id="drive-picker-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50 p-4">
     <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 relative flex flex-col max-h-[80vh]">
       <div class="flex justify-between items-center mb-4 shrink-0">
-        <h3 class="text-lg font-bold text-gray-800">Select Google Sheet</h3>
+        <h3 class="text-lg font-bold text-gray-800">Switch Database</h3>
         <button onclick="closeDrivePicker()" class="text-gray-400 hover:text-gray-600">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
         </button>
@@ -257,7 +260,7 @@
       window.location.reload();
     }
 
-    // --- CUSTOM DRIVE PICKER LOGIC ---
+    // --- CUSTOM DRIVE PICKER & WORKSPACE SWITCHING LOGIC ---
     async function openDrivePicker() {
       const modal = document.getElementById('drive-picker-modal');
       const list = document.getElementById('drive-file-list');
@@ -280,11 +283,12 @@
         if (data.files && data.files.length > 0) {
           data.files.forEach(file => {
             const date = new Date(file.createdTime).toLocaleDateString();
+            const isCurrent = file.id === spreadsheetId;
             list.innerHTML += `
               <li>
-                <button onclick="linkSelectedSheet('${file.id}')" class="w-full text-left bg-white border border-gray-200 hover:border-[#009EFF] p-3 rounded-lg transition-colors flex justify-between items-center group">
+                <button onclick="linkSelectedSheet('${file.id}')" ${isCurrent ? 'disabled' : ''} class="w-full text-left bg-white border ${isCurrent ? 'border-green-400 bg-green-50' : 'border-gray-200 hover:border-[#009EFF]'} p-3 rounded-lg transition-colors flex justify-between items-center group">
                   <div>
-                    <p class="font-bold text-sm text-gray-800 group-hover:text-[#1A4BAF]">${file.name}</p>
+                    <p class="font-bold text-sm ${isCurrent ? 'text-green-800' : 'text-gray-800 group-hover:text-[#1A4BAF]'}">${file.name} ${isCurrent ? '(Active)' : ''}</p>
                     <p class="text-xs text-gray-500">Created: ${date}</p>
                   </div>
                   <span class="text-xs font-medium text-[#009EFF] opacity-0 group-hover:opacity-100 transition-opacity">Select</span>
@@ -314,6 +318,36 @@
       await fetchSheetDetails();
       await fetchProjects();
       alert("Database switched successfully!");
+    }
+
+    // --- NEW MANUAL TRACKER CREATION ---
+    async function createNewTrackerManually() {
+      const sheetName = prompt("Enter a name for your new tracker database:", "Daily Financial Tracker");
+      if (!sheetName) return; 
+
+      const btn = document.getElementById('btn-create-new');
+      const originalText = btn.innerText;
+      btn.innerText = "Creating...";
+      btn.disabled = true;
+
+      try {
+        await createMasterSheet(sheetName); 
+        await saveConfigToCloud(spreadsheetId);
+        localStorage.setItem("financial_tracker_sheet_id", spreadsheetId);
+        
+        updateProjectCache();
+        
+        document.getElementById('current-sheet-id').innerText = spreadsheetId;
+        document.getElementById('sheet-link').href = `https://docs.google.com/spreadsheets/d/${spreadsheetId}`;
+        await fetchSheetDetails();
+        
+        alert(`New database "${sheetName}" created and linked successfully!`);
+      } catch (err) {
+        alert("Failed to create new tracker database.");
+      }
+      
+      btn.innerText = originalText;
+      btn.disabled = false;
     }
 
     // --- INITIALIZATION & SYNC LOGIC ---
@@ -353,7 +387,6 @@
           }
         }
 
-        // Look for existing sheet to adopt
         const sheetQuery = encodeURIComponent("name='Daily Financial Tracker' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false");
         const oldSheetRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${sheetQuery}&spaces=drive&fields=files(id)&orderBy=createdTime%20asc`, {
           headers: { "Authorization": `Bearer ${accessToken}` }
@@ -410,10 +443,9 @@
     }
 
     // --- MULTI-TAB MASTER SHEET CREATION ---
-    async function createMasterSheet() {
+    async function createMasterSheet(sheetTitle = "Daily Financial Tracker") {
       const defaultProjects = ["General", "CNC Furniture Design", "Frappe SaaS", "Shopify Stores"];
       
-      // Map out individual sheets for each project
       const projectSheets = defaultProjects.map(p => ({
         properties: { title: p },
         data: [{ startRow: 0, startColumn: 0, rowData: [{ values: [
@@ -423,7 +455,6 @@
         ]}]}]
       }));
 
-      // Add the Settings sheet at the end
       projectSheets.push({
         properties: { title: "Settings" },
         data: [{ startRow: 0, startColumn: 0, rowData: defaultProjects.map(p => ({
@@ -433,7 +464,7 @@
 
       const response = await fetch("https://sheets.googleapis.com/v4/spreadsheets", {
         method: "POST", headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ properties: { title: "Daily Financial Tracker" }, sheets: projectSheets })
+        body: JSON.stringify({ properties: { title: sheetTitle }, sheets: projectSheets })
       });
       const data = await response.json();
       spreadsheetId = data.spreadsheetId;
@@ -503,25 +534,22 @@
 
     async function addProject() {
       const input = document.getElementById('new-project-name');
-      let val = input.value.trim().replace(/['"\/\\?*[\]]/g, ''); // Strip invalid characters
+      let val = input.value.trim().replace(/['"\/\\?*[\]]/g, ''); 
       if (val && !projects.includes(val)) {
         const btn = document.getElementById('add-proj-btn');
         btn.innerText = "..."; btn.disabled = true;
 
         try {
-          // 1. Create the new physical tab
           await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
             method: "POST", headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
             body: JSON.stringify({ requests: [{ addSheet: { properties: { title: val } } }] })
           });
           
-          // 2. Add the headers to the new tab
           await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'${val}'!A1:E1?valueInputOption=USER_ENTERED`, {
             method: "PUT", headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
             body: JSON.stringify({ values: [["Date", "Project", "Type", "Amount", "Notes"]] })
           });
 
-          // 3. Update internal state and Settings tab
           projects.push(val);
           updateProjectCache();
           await saveSettingsTab();
@@ -595,7 +623,7 @@
 
       while (offlineQueue.length > 0) {
         const row = offlineQueue[0];
-        const targetTab = row[1]; // The project name acts as the tab name
+        const targetTab = row[1]; 
         
         try {
           const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'${targetTab}'!A:E:append?valueInputOption=USER_ENTERED`, {
@@ -673,7 +701,6 @@
       btn.innerText = "Fetching Data..."; btn.disabled = true;
 
       try {
-        // 1. Fetch metadata to ensure we only request tabs that actually exist
         const sheetsMeta = await getSheetMetadata();
         const existingTitles = sheetsMeta.map(s => s.properties.title);
         const validProjects = projects.filter(p => existingTitles.includes(p));
@@ -682,7 +709,6 @@
           throw new Error("No project tabs found in spreadsheet.");
         }
 
-        // 2. Build parallel batchGet query for all valid project tabs
         const rangesQuery = validProjects.map(p => `ranges=${encodeURIComponent(`'${p}'!A2:E`)}`).join('&');
         const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchGet?${rangesQuery}`, {
           headers: { "Authorization": `Bearer ${accessToken}` }
@@ -690,7 +716,6 @@
         
         const data = await response.json();
         
-        // 3. Flatten the responses from all tabs into a single array
         let allRows = [];
         if (data.valueRanges) {
           data.valueRanges.forEach(vr => {
