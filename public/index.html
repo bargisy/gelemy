@@ -94,7 +94,6 @@
             </div>
             <ul id="rep-projects" class="divide-y divide-gray-100 text-sm"></ul>
           </div>
-
           <div id="rep-transactions" class="mt-6 pt-2"></div>
         </div>
       </div>
@@ -181,6 +180,12 @@
               + Create New Database
             </button>
           </div>
+          
+          <!-- New Custom PWA Install Button -->
+          <button id="install-app-btn" class="hidden w-full bg-blue-50 hover:bg-blue-100 text-[#1A4BAF] font-medium py-2.5 rounded-lg transition-colors text-sm border border-blue-200 mt-4">
+            📲 Install App to Home Screen
+          </button>
+          <p id="ios-install-hint" class="hidden text-xs text-gray-500 text-center mt-2">To install on iOS: tap the <strong>Share</strong> button at the bottom of Safari, then select <strong>Add to Home Screen</strong>.</p>
 
           <button onclick="logout()" class="w-full bg-red-50 hover:bg-red-100 text-red-600 font-medium py-2.5 rounded-lg transition-colors text-sm mt-4">
             Disconnect Google Account
@@ -221,6 +226,37 @@
     let projects = JSON.parse(localStorage.getItem('tracker_projects')) || ["General"];
     let offlineQueue = JSON.parse(localStorage.getItem('tracker_offline_queue')) || [];
 
+    // --- PWA INSTALL PROMPT LOGIC ---
+    let deferredPrompt;
+    
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // Prevent Chrome from showing the mini-infobar automatically
+      e.preventDefault();
+      deferredPrompt = e;
+      // Show our custom Install button in the Settings tab
+      const installBtn = document.getElementById('install-app-btn');
+      installBtn.classList.remove('hidden');
+
+      installBtn.addEventListener('click', async () => {
+        installBtn.classList.add('hidden'); // Hide button once clicked
+        deferredPrompt.prompt(); // Show the browser's native install dialog
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log(`User response to the install prompt: ${outcome}`);
+        deferredPrompt = null;
+      });
+    });
+
+    // Detect if user is on iOS and hasn't installed the app yet to show a hint
+    const isIos = () => {
+      const userAgent = window.navigator.userAgent.toLowerCase();
+      return /iphone|ipad|ipod/.test(userAgent);
+    }
+    const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator.standalone);
+    
+    if (isIos() && !isInStandaloneMode()) {
+      document.getElementById('ios-install-hint').classList.remove('hidden');
+    }
+
     // Helper to set entry form date/time to right now
     function setEntryDefaults() {
       const now = new Date();
@@ -239,7 +275,6 @@
       setEntryDefaults();
       renderProjects();
       
-      // GUARD: Only initialize Google if the script successfully loaded
       if (typeof google !== 'undefined') {
         tokenClient = google.accounts.oauth2.initTokenClient({
           client_id: CLIENT_ID,
@@ -271,7 +306,6 @@
         accessToken = cachedAuth.token;
         initializeDatabase(); 
       } else if (!navigator.onLine && spreadsheetId) {
-        // Force offline mode if we have a sheet ID but no internet
         showAppView();
       }
     }
@@ -378,7 +412,6 @@
       alert("Database switched successfully!");
     }
 
-    // --- NEW MANUAL TRACKER CREATION ---
     async function createNewTrackerManually() {
       const sheetName = prompt("Enter a name for your new tracker database:", "Daily Financial Tracker");
       if (!sheetName) return; 
@@ -500,7 +533,6 @@
       }
     }
 
-    // --- MULTI-TAB MASTER SHEET CREATION ---
     async function createMasterSheet(sheetTitle = "Daily Financial Tracker") {
       const defaultProjects = ["General", "CNC Furniture Design", "Frappe SaaS", "Shopify Stores"];
       
@@ -529,7 +561,6 @@
       projects = defaultProjects;
     }
 
-    // --- SHEET METADATA HELPER ---
     async function getSheetMetadata() {
       const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`, {
         headers: { "Authorization": `Bearer ${accessToken}` }
@@ -538,7 +569,7 @@
       return data.sheets || [];
     }
 
-    // --- PROJECT MANAGEMENT (MULTI-TAB LOGIC) ---
+    // --- PROJECT MANAGEMENT ---
     async function fetchProjects() {
       try {
         const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Settings!A:A`, {
@@ -550,7 +581,7 @@
           updateProjectCache();
         }
       } catch (err) {
-        console.log("Could not fetch projects, relying on local cache.");
+        console.log("Could not fetch projects.");
       }
     }
 
@@ -670,7 +701,7 @@
       }
     }
 
-    // --- TRANSACTION LOGIC (MULTI-TAB WITH TIME) ---
+    // --- TRANSACTION LOGIC ---
     async function syncOfflineQueue() {
       if (offlineQueue.length === 0 || !navigator.onLine || !accessToken || !spreadsheetId) return;
 
