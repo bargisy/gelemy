@@ -1,52 +1,33 @@
-const CACHE_NAME = 'fintrack-cache-v2';
-const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json'
-];
+const CACHE_NAME = 'fintrack-v3';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      // Use a fault-tolerant method so missing files don't crash the install
-      return Promise.allSettled(
-        STATIC_ASSETS.map(asset => cache.add(asset).catch(err => console.warn('Cache add failed for', asset)))
-      );
-    })
-  );
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.filter(name => name !== CACHE_NAME).map(name => caches.delete(name))
-      );
-    })
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+    )
   );
   self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
-  // Ignore API calls (don't cache data requests)
-  if (event.request.url.includes('googleapis.com/drive') || event.request.url.includes('googleapis.com/sheets')) {
+  // Ignore Google API requests
+  if (event.request.url.includes('googleapis.com')) {
     return;
   }
 
-  // Network First, fallback to Cache strategy for everything else (including Tailwind and Google Scripts)
   event.respondWith(
     fetch(event.request)
-      .then((networkResponse) => {
-        // Cache the new response for future offline use
-        if (networkResponse.ok && event.request.method === 'GET') {
-          const clone = networkResponse.clone();
+      .then((response) => {
+        if (response.ok && event.request.method === 'GET') {
+          const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
         }
-        return networkResponse;
+        return response;
       })
-      .catch(() => {
-        return caches.match(event.request);
-      })
+      .catch(() => caches.match(event.request))
   );
 });
