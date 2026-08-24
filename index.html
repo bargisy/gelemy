@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Daily Financial Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans min-h-screen flex items-center justify-center p-4">
+
+  <!-- Landing / Login View -->
+  <div id="landing-view" class="max-w-md w-full bg-white rounded-xl shadow-lg p-8 text-center transition-all duration-300">
+    <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+    </div>
+    <h1 class="text-2xl font-bold mb-2">Financial Tracker</h1>
+    <p class="text-gray-500 mb-8">Log daily project income and expenses directly into a secure Google Sheet.</p>
+    <button id="auth-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2">
+      Connect Google Account
+    </button>
+  </div>
+
+  <!-- Dashboard / Data Entry View (Hidden by default) -->
+  <div id="dashboard-view" class="max-w-md w-full bg-white rounded-xl shadow-lg p-8 hidden transition-all duration-300">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-xl font-bold">New Entry</h2>
+      <a id="sheet-link" href="#" target="_blank" class="text-sm text-blue-600 hover:underline hidden">View Sheet ↗</a>
+    </div>
+
+    <form id="entry-form" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Project</label>
+        <select id="project" class="w-full border-gray-300 border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+          <option value="General">General</option>
+          <option value="Project Alpha">Project Alpha</option>
+          <option value="Project Beta">Project Beta</option>
+        </select>
+      </div>
+      
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+          <select id="type" class="w-full border-gray-300 border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+            <option value="Expense">Expense</option>
+            <option value="Income">Income</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Amount ($)</label>
+          <input type="number" id="amount" step="0.01" required class="w-full border-gray-300 border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="0.00">
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Notes / Description</label>
+        <input type="text" id="notes" required class="w-full border-gray-300 border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g., Software license">
+      </div>
+
+      <button type="submit" id="submit-btn" class="w-full bg-gray-900 hover:bg-gray-800 text-white font-medium py-3 px-4 rounded-lg transition-colors mt-6">
+        Log Transaction
+      </button>
+      <div id="status-msg" class="text-sm text-center font-medium mt-2 hidden"></div>
+    </form>
+  </div>
+
+  <script>
+    const CLIENT_ID = "YOUR_CLIENT_ID_HERE"; 
+    const SCOPES = "https://www.googleapis.com/auth/drive.file";
+    
+    let tokenClient;
+    let accessToken = null;
+    let spreadsheetId = localStorage.getItem("financial_tracker_sheet_id");
+
+    window.onload = () => {
+      // Initialize GIS OAuth Client
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: SCOPES,
+        callback: async (response) => {
+          if (response.error) {
+            console.error(response);
+            return;
+          }
+          accessToken = response.access_token;
+          
+          // If no sheet exists in local storage, create one
+          if (!spreadsheetId) {
+            await createMasterSheet();
+          } else {
+            showDashboard();
+          }
+        },
+      });
+
+      // Bind Auth Button
+      document.getElementById('auth-btn').onclick = () => {
+        tokenClient.requestAccessToken({ prompt: 'consent' });
+      };
+
+      // Bind Form Submission
+      document.getElementById('entry-form').onsubmit = async (e) => {
+        e.preventDefault();
+        await appendTransaction();
+      };
+    };
+
+    async function createMasterSheet() {
+      const btn = document.getElementById('auth-btn');
+      btn.innerText = "Setting up your database...";
+      btn.disabled = true;
+
+      const response = await fetch("https://sheets.googleapis.com/v4/spreadsheets", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          properties: { title: "Daily Financial Tracker" },
+          sheets: [{
+            properties: { title: "Transactions" },
+            data: [{
+              startRow: 0, startColumn: 0,
+              rowData: [{
+                values: [
+                  { userEnteredValue: { stringValue: "Date" } },
+                  { userEnteredValue: { stringValue: "Project" } },
+                  { userEnteredValue: { stringValue: "Type" } },
+                  { userEnteredValue: { stringValue: "Amount" } },
+                  { userEnteredValue: { stringValue: "Notes" } }
+                ]
+              }]
+            }]
+          }]
+        })
+      });
+
+      const data = await response.json();
+      spreadsheetId = data.spreadsheetId;
+      localStorage.setItem("financial_tracker_sheet_id", spreadsheetId);
+      showDashboard();
+    }
+
+    async function appendTransaction() {
+      const submitBtn = document.getElementById('submit-btn');
+      const statusMsg = document.getElementById('status-msg');
+      submitBtn.disabled = true;
+      submitBtn.innerText = "Logging...";
+
+      const row = [
+        new Date().toISOString().split("T")[0],
+        document.getElementById('project').value,
+        document.getElementById('type').value,
+        parseFloat(document.getElementById('amount').value),
+        document.getElementById('notes').value
+      ];
+
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Transactions!A:E:append?valueInputOption=USER_ENTERED`;
+
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ values: [row] }),
+        });
+
+        if (response.ok) {
+          document.getElementById('entry-form').reset();
+          statusMsg.innerText = "Entry logged successfully!";
+          statusMsg.className = "text-sm text-center font-medium mt-2 text-green-600 block";
+        } else {
+          throw new Error("API Error");
+        }
+      } catch (err) {
+        statusMsg.innerText = "Failed to log entry. Token might be expired.";
+        statusMsg.className = "text-sm text-center font-medium mt-2 text-red-600 block";
+      }
+
+      submitBtn.disabled = false;
+      submitBtn.innerText = "Log Transaction";
+      setTimeout(() => { statusMsg.classList.add('hidden'); }, 3000);
+    }
+
+    function showDashboard() {
+      document.getElementById('landing-view').classList.add('hidden');
+      document.getElementById('dashboard-view').classList.remove('hidden');
+      
+      const sheetLink = document.getElementById('sheet-link');
+      sheetLink.href = `https://docs.google.com/spreadsheets/d/${spreadsheetId}`;
+      sheetLink.classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
