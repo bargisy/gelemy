@@ -6,11 +6,11 @@
   <title>Financial Tracker</title>
   
   <!-- PWA Meta Tags -->
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#1A4BAF">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="apple-touch-icon" href="/icon-192.png">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -19,14 +19,14 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
+        navigator.serviceWorker.register('/sw.js')
           .then(reg => console.log('Service Worker registered', reg))
           .catch(err => console.error('Service Worker registration failed', err));
       });
     }
   </script>
 </head>
-<body class="bg-gray-100 text-gray-900 font-sans min-h-screen flex flex-col items-center pb-20 sm:p-4">
+<body class="bg-gray-100 text-gray-900 font-sans min-h-screen flex flex-col items-center sm:p-4">
 
   <!-- Global Install Banner -->
   <div id="install-banner" class="hidden w-full max-w-md bg-[#1A4BAF] text-white px-4 py-3 flex justify-between items-center shadow-md z-50 transition-all sm:rounded-t-xl">
@@ -53,13 +53,11 @@
   </div>
 
   <!-- Main App View -->
-  <div id="app-view" class="w-full max-w-md bg-white sm:rounded-b-xl sm:rounded-t-none shadow-sm sm:shadow-lg hidden flex-col h-screen sm:h-auto overflow-hidden">
+  <div id="app-view" class="w-full max-w-md bg-white sm:rounded-xl shadow-sm sm:shadow-lg hidden flex-col h-screen sm:h-[800px] overflow-hidden">
     
-    <!-- Header Navigation -->
-    <div class="flex border-b border-gray-200 bg-white shrink-0">
-      <button onclick="switchTab('reports')" id="nav-reports" class="flex-1 py-4 text-sm font-medium text-gray-500 border-b-2 border-transparent transition-colors">Reports</button>
-      <button onclick="switchTab('entry')" id="nav-entry" class="flex-1 py-4 text-sm font-medium text-[#1A4BAF] border-b-2 border-[#1A4BAF] transition-colors">New Entry</button>
-      <button onclick="switchTab('settings')" id="nav-settings" class="flex-1 py-4 text-sm font-medium text-gray-500 border-b-2 border-transparent transition-colors">Settings</button>
+    <!-- Top Header (Title Only) -->
+    <div class="flex items-center justify-center border-b border-gray-100 bg-white p-4 shrink-0 shadow-sm z-10">
+      <h2 class="text-lg font-bold text-gray-800">Financial Tracker</h2>
     </div>
 
     <!-- Scrollable Content Area -->
@@ -68,7 +66,6 @@
       <!-- ================== TAB: REPORTS ================== -->
       <div id="tab-reports" class="hidden space-y-6">
         <div>
-          <h2 class="text-xl font-bold text-gray-800 mb-4">Financial Report</h2>
           <div class="grid grid-cols-2 gap-3 mb-4">
             <div>
               <label class="block text-xs font-medium text-gray-500 mb-1">Start Date</label>
@@ -105,6 +102,7 @@
             </div>
             <ul id="rep-projects" class="divide-y divide-gray-100 text-sm"></ul>
           </div>
+
           <div id="rep-transactions" class="mt-6 pt-2"></div>
         </div>
       </div>
@@ -203,6 +201,22 @@
         </div>
       </div>
     </div>
+
+    <!-- ================== BOTTOM ICON NAVIGATION ================== -->
+    <div class="flex border-t border-gray-200 bg-white shrink-0 mt-auto shadow-[0_-2px_10px_rgba(0,0,0,0.05)] z-10 pb-safe">
+      <button onclick="switchTab('reports')" id="nav-reports" class="flex-1 py-3 text-xs font-medium text-gray-400 flex flex-col items-center justify-center transition-colors">
+        <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+        Reports
+      </button>
+      <button onclick="switchTab('entry')" id="nav-entry" class="flex-1 py-3 text-xs font-medium text-[#1A4BAF] flex flex-col items-center justify-center transition-colors">
+        <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+        New Entry
+      </button>
+      <button onclick="switchTab('settings')" id="nav-settings" class="flex-1 py-3 text-xs font-medium text-gray-400 flex flex-col items-center justify-center transition-colors">
+        <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+        Settings
+      </button>
+    </div>
   </div>
 
   <!-- Custom Google Drive Picker Modal -->
@@ -237,57 +251,62 @@
     let offlineQueue = JSON.parse(localStorage.getItem('tracker_offline_queue')) || [];
 
     // --- PWA INSTALL PROMPT LOGIC ---
-    let deferredPrompt;
+    let deferredPrompt = null;
+    const installBtn = document.getElementById('install-app-btn');
+    const banner = document.getElementById('install-banner');
     
-    window.addEventListener('beforeinstallprompt', (e) => {
-      // Prevent Chrome from showing the mini-infobar automatically
-      e.preventDefault();
-      deferredPrompt = e;
-      
-      // Show the button in Settings
-      const installBtn = document.getElementById('install-app-btn');
-      if (installBtn) installBtn.classList.remove('hidden');
+    const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
-      // Show the Global Banner at the top of the screen
-      const banner = document.getElementById('install-banner');
-      const bannerBtn = document.getElementById('banner-install-btn');
-      if (banner) banner.classList.remove('hidden');
+    // Set button state if app is already installed
+    if (isStandalone && installBtn) {
+      installBtn.innerText = "✅ App is Installed";
+      installBtn.disabled = true;
+      installBtn.classList.replace('bg-blue-50', 'bg-green-50');
+      installBtn.classList.replace('text-[#1A4BAF]', 'text-green-700');
+      installBtn.classList.replace('border-blue-200', 'border-green-200');
+    } else {
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        if (installBtn) installBtn.classList.remove('hidden');
+        if (banner) banner.classList.remove('hidden'); 
+      });
 
-      // Handle Banner Click
-      if (bannerBtn) {
-        bannerBtn.addEventListener('click', async () => {
-          banner.classList.add('hidden'); // Hide banner
-          if (installBtn) installBtn.classList.add('hidden'); // Hide settings button
-          
-          deferredPrompt.prompt(); // Show the browser's native install dialog
-          const { outcome } = await deferredPrompt.userChoice;
-          console.log(`User response to the install prompt: ${outcome}`);
-          deferredPrompt = null;
-        });
-      }
-
-      // Handle Settings Button Click
       if (installBtn) {
         installBtn.addEventListener('click', async () => {
-          banner.classList.add('hidden'); 
-          installBtn.classList.add('hidden'); 
-          
-          deferredPrompt.prompt();
-          const { outcome } = await deferredPrompt.userChoice;
-          console.log(`User response to the install prompt: ${outcome}`);
-          deferredPrompt = null;
+          if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`Install prompt outcome: ${outcome}`);
+            deferredPrompt = null;
+            if (banner) banner.classList.add('hidden');
+          } else {
+            if (isIos()) {
+              alert("To install on iOS (iPhone/iPad):\n\n1. Tap the 'Share' icon at the bottom of Safari.\n2. Scroll down and select 'Add to Home Screen'.");
+            } else {
+              alert("Native install blocked by browser.\n\nTo install manually:\n1. Click your browser's menu (3 dots in top right).\n2. Select 'Install App' or 'Add to Home screen'.");
+            }
+          }
         });
       }
-    });
 
-    const isIos = () => {
-      const userAgent = window.navigator.userAgent.toLowerCase();
-      return /iphone|ipad|ipod/.test(userAgent);
+      if (banner) {
+        document.getElementById('banner-install-btn').addEventListener('click', async () => {
+          if (deferredPrompt) {
+            deferredPrompt.prompt();
+            await deferredPrompt.userChoice;
+            deferredPrompt = null;
+            banner.classList.add('hidden');
+            if (installBtn) installBtn.classList.add('hidden');
+          }
+        });
+      }
     }
-    const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator.standalone);
-    
-    if (isIos() && !isInStandaloneMode()) {
+
+    if (isIos() && !isStandalone) {
       document.getElementById('ios-install-hint').classList.remove('hidden');
+      if (installBtn) installBtn.classList.remove('hidden');
     }
 
     // Helper to set entry form date/time to right now
@@ -343,13 +362,21 @@
       }
     }
 
+    // --- BOTTOM NAVIGATION LOGIC ---
     function switchTab(tabName) {
+      // Hide all tabs and reset icon colors
       ['reports', 'entry', 'settings'].forEach(t => {
-        document.getElementById(`nav-${t}`).className = "flex-1 py-4 text-sm font-medium text-gray-500 border-b-2 border-transparent transition-colors";
         document.getElementById(`tab-${t}`).classList.add('hidden');
+        const btn = document.getElementById(`nav-${t}`);
+        btn.classList.remove('text-[#1A4BAF]');
+        btn.classList.add('text-gray-400');
       });
-      document.getElementById(`nav-${tabName}`).className = "flex-1 py-4 text-sm font-medium text-[#1A4BAF] border-b-2 border-[#1A4BAF] transition-colors";
+      
+      // Show selected tab and activate icon color
       document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+      const activeBtn = document.getElementById(`nav-${tabName}`);
+      activeBtn.classList.remove('text-gray-400');
+      activeBtn.classList.add('text-[#1A4BAF]');
       
       if(tabName === 'entry') setEntryDefaults();
     }
