@@ -1,43 +1,55 @@
-// --- PWA INSTALL PROMPT LOGIC ---
-    let deferredPrompt;
-    
-    window.addEventListener('beforeinstallprompt', (e) => {
-      // Prevent Chrome from showing the mini-infobar automatically
-      e.preventDefault();
-      deferredPrompt = e;
-      
-      // Show the button in Settings
-      const installBtn = document.getElementById('install-app-btn');
-      if (installBtn) installBtn.classList.remove('hidden');
+const CACHE_NAME = 'fintrack-v5';
+const PRECACHE_URLS = ['/', '/index.html', '/manifest.json'];
 
-      // Show the Global Banner at the top of the screen
-      const banner = document.getElementById('install-banner');
-      const bannerBtn = document.getElementById('banner-install-btn');
-      if (banner) banner.classList.remove('hidden');
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+  // Aggressively cache the core files the millisecond the worker installs
+  // so Android's PWA "offline audit" passes instantly.
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return Promise.all(
+        PRECACHE_URLS.map(url => {
+          return fetch(url).then(response => {
+            if (response.ok) {
+              return cache.put(url, response);
+            }
+          }).catch(err => console.warn('Precache failed for:', url));
+        })
+      );
+    })
+  );
+});
 
-      // Handle Banner Click
-      if (bannerBtn) {
-        bannerBtn.addEventListener('click', async () => {
-          banner.classList.add('hidden'); // Hide banner
-          if (installBtn) installBtn.classList.add('hidden'); // Hide settings button
-          
-          deferredPrompt.prompt(); // Show the browser's native install dialog
-          const { outcome } = await deferredPrompt.userChoice;
-          console.log(`User response to the install prompt: ${outcome}`);
-          deferredPrompt = null;
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+    )
+  );
+  self.clients.claim();
+});
+
+self.addEventListener('fetch', (event) => {
+  // Never cache Google Drive/Sheets API calls
+  if (event.request.url.includes('googleapis.com')) {
+    return;
+  }
+
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        // Cache external assets (like Tailwind CSS) as they load
+        if (response.ok && event.request.method === 'GET') {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return response;
+      })
+      .catch(() => {
+        // If offline, serve from cache. Fallback to /index.html if the specific route isn't found.
+        return caches.match(event.request).then(cachedRes => {
+          return cachedRes || caches.match('/index.html');
         });
-      }
-
-      // Handle Settings Button Click
-      if (installBtn) {
-        installBtn.addEventListener('click', async () => {
-          banner.classList.add('hidden'); 
-          installBtn.classList.add('hidden'); 
-          
-          deferredPrompt.prompt();
-          const { outcome } = await deferredPrompt.userChoice;
-          console.log(`User response to the install prompt: ${outcome}`);
-          deferredPrompt = null;
-        });
-      }
-    });
+      })
+  );
+});
