@@ -2,15 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <!-- Added viewport-fit=cover to extend layout into notch areas on modern phones -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
   <title>Financial Tracker</title>
   
   <!-- PWA Meta Tags -->
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#1A4BAF">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="apple-touch-icon" href="/icon-192.png">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -19,17 +20,19 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
+        navigator.serviceWorker.register('/sw.js')
           .then(reg => console.log('Service Worker registered', reg))
           .catch(err => console.error('Service Worker registration failed', err));
       });
     }
   </script>
 </head>
-<body class="bg-gray-100 text-gray-900 font-sans m-0 p-0 sm:p-4 h-[100dvh] w-full flex flex-col items-center sm:justify-center overflow-hidden">
 
-  <!-- Global Install Banner -->
-  <div id="install-banner" class="hidden w-full max-w-md bg-[#1A4BAF] text-white px-4 py-3 flex justify-between items-center shadow-md z-50 shrink-0 sm:rounded-t-xl transition-all">
+<!-- We let the body handle the scrolling natively. flex and justify-center keep the app centered on desktop monitors -->
+<body class="bg-gray-100 text-gray-900 font-sans m-0 p-0 flex justify-center min-h-screen">
+
+  <!-- Global Install Banner (Fixed to top center) -->
+  <div id="install-banner" class="hidden fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-[#1A4BAF] text-white px-4 py-3 flex justify-between items-center shadow-lg z-50 transition-all pt-[max(0.75rem,env(safe-area-inset-top))]">
     <div class="flex items-center gap-3">
       <span class="text-xl">📲</span>
       <span class="text-sm font-medium">Install FinTrack for quick offline access</span>
@@ -40,30 +43,30 @@
   </div>
 
   <!-- Landing / Login View -->
-  <div id="landing-view" class="w-full max-w-md bg-white sm:rounded-xl shadow-sm sm:shadow-lg p-8 text-center flex flex-col justify-center flex-1 sm:flex-none min-h-0 sm:h-auto transition-all duration-300">
+  <div id="landing-view" class="w-full max-w-md bg-white min-h-screen shadow-2xl sm:border-x sm:border-gray-200 p-8 flex flex-col justify-center transition-all duration-300">
     <div class="w-16 h-16 bg-blue-50 text-[#1A4BAF] rounded-full flex items-center justify-center mx-auto mb-6">
       <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
     </div>
     <h1 class="text-2xl font-bold mb-2">Financial Tracker</h1>
     <p class="text-gray-500 mb-8">Log daily project income and expenses directly into a secure Google Sheet.</p>
     
-    <button id="auth-btn" class="w-full bg-[#1A4BAF] hover:bg-[#009EFF] text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2">
+    <button id="auth-btn" class="w-full bg-[#1A4BAF] hover:bg-[#009EFF] text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
       Connect Google Account
     </button>
   </div>
 
   <!-- Main App View -->
-  <!-- Set to strictly fill available height (flex-1 min-h-0) without pushing past the screen bounds -->
-  <div id="app-view" class="w-full max-w-md bg-white sm:rounded-xl shadow-sm sm:shadow-lg hidden flex-col flex-1 min-h-0 sm:max-h-[800px] overflow-hidden">
+  <!-- Takes full height of screen, borders act as phone edges on desktop -->
+  <div id="app-view" class="hidden w-full max-w-md bg-white min-h-screen shadow-2xl sm:border-x sm:border-gray-200 flex-col relative">
     
-    <!-- Top Header -->
-    <div class="flex items-center justify-center border-b border-gray-100 bg-white p-4 shrink-0 shadow-sm z-10 pt-[env(safe-area-inset-top)]">
-      <h2 class="text-lg font-bold text-gray-800">Financial Tracker</h2>
-    </div>
+    <!-- Top Header (Sticky: stays at top while scrolling) -->
+    <header class="sticky top-0 bg-white/95 backdrop-blur-md border-b border-gray-100 p-4 z-40 pt-[max(1rem,env(safe-area-inset-top))]">
+      <h2 class="text-lg font-bold text-gray-800 text-center">Financial Tracker</h2>
+    </header>
 
-    <!-- Scrollable Content Area -->
-    <!-- min-h-0 forces the flexbox to let this container scroll natively -->
-    <div class="flex-1 overflow-y-auto min-h-0 p-6 bg-gray-50">
+    <!-- Main Scrollable Content Area -->
+    <!-- pb-32 adds 128px of empty space at the absolute bottom so content clears the nav bar completely -->
+    <main class="flex-1 p-6 pb-32 bg-gray-50 z-10 min-h-screen">
 
       <!-- ================== TAB: REPORTS ================== -->
       <div id="tab-reports" class="hidden space-y-6">
@@ -152,7 +155,7 @@
             <label class="block text-sm font-medium text-gray-700 mb-1">Notes / Description</label>
             <input type="text" id="notes" required class="w-full border-gray-300 border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-[#009EFF] outline-none shadow-sm" placeholder="e.g., Software license">
           </div>
-          <button type="submit" id="submit-btn" class="w-full bg-[#1A4BAF] hover:bg-[#009EFF] text-white font-medium py-3 px-4 rounded-lg transition-colors mt-4 shadow-md">
+          <button type="submit" id="submit-btn" class="w-full bg-[#1A4BAF] hover:bg-[#009EFF] text-white font-medium py-3 px-4 rounded-lg transition-colors mt-4 shadow-md disabled:opacity-70">
             Log Transaction
           </button>
           <div id="status-msg" class="text-sm text-center font-medium mt-2 hidden"></div>
@@ -187,12 +190,12 @@
             <button onclick="openDrivePicker()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 rounded-lg transition-colors text-sm">
               Switch Sheet
             </button>
-            <button onclick="createNewTrackerManually()" id="btn-create-new" class="col-span-2 bg-green-50 hover:bg-green-100 text-green-700 font-medium py-2 rounded-lg transition-colors text-sm border border-green-200 mt-2">
+            <button onclick="createNewTrackerManually()" id="btn-create-new" class="col-span-2 bg-green-50 hover:bg-green-100 text-green-700 font-medium py-2 rounded-lg transition-colors text-sm border border-green-200 mt-2 disabled:opacity-70">
               + Create New Database
             </button>
           </div>
           
-          <button id="install-app-btn" class="hidden w-full bg-blue-50 hover:bg-blue-100 text-[#1A4BAF] font-medium py-2.5 rounded-lg transition-colors text-sm border border-blue-200 mt-4">
+          <button id="install-app-btn" class="hidden w-full bg-blue-50 hover:bg-blue-100 text-[#1A4BAF] font-medium py-2.5 rounded-lg transition-colors text-sm border border-blue-200 mt-4 disabled:opacity-70">
             📲 Install App to Home Screen
           </button>
           <p id="ios-install-hint" class="hidden text-xs text-gray-500 text-center mt-2">To install on iOS: tap the <strong>Share</strong> button at the bottom of Safari, then select <strong>Add to Home Screen</strong>.</p>
@@ -202,11 +205,11 @@
           </button>
         </div>
       </div>
-    </div>
+    </main>
 
     <!-- ================== BOTTOM ICON NAVIGATION ================== -->
-    <!-- In-flow element. shrink-0 stops it from crushing, keeping it natively attached to the bottom. -->
-    <div class="flex border-t border-gray-200 bg-white shrink-0 shadow-[0_-4px_15px_rgba(0,0,0,0.03)] z-10 pb-[env(safe-area-inset-bottom)]">
+    <!-- Fixed: Snaps perfectly to the viewport bottom over the scrolling main content -->
+    <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/95 backdrop-blur-md border-t border-gray-200 z-40 pb-[max(0px,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(0,0,0,0.05)] flex">
       <button onclick="switchTab('reports')" id="nav-reports" class="flex-1 py-3 text-xs font-medium text-gray-400 flex flex-col items-center justify-center transition-colors">
         <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
         Reports
@@ -219,7 +222,7 @@
         <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
         Settings
       </button>
-    </div>
+    </nav>
   </div>
 
   <!-- Custom Google Drive Picker Modal -->
@@ -232,7 +235,7 @@
         </button>
       </div>
       <p class="text-xs text-gray-500 mb-4 shrink-0">Select the master spreadsheet you want this device to sync with.</p>
-      <div class="flex-1 overflow-y-auto mb-4 border border-gray-100 rounded-lg bg-gray-50 p-2 min-h-0">
+      <div class="flex-1 overflow-y-auto mb-4 border border-gray-100 rounded-lg bg-gray-50 p-2">
         <ul id="drive-file-list" class="space-y-2"></ul>
         <div id="drive-picker-loading" class="text-center py-6 hidden">
           <p class="text-sm text-gray-500">Searching your Google Drive...</p>
@@ -378,11 +381,15 @@
       activeBtn.classList.add('text-[#1A4BAF]');
       
       if(tabName === 'entry') setEntryDefaults();
+      
+      // Bonus: Smooth scroll back to top when switching tabs
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function showAppView() {
       document.getElementById('landing-view').classList.add('hidden');
       document.getElementById('app-view').classList.remove('hidden');
+      document.getElementById('app-view').classList.add('flex'); // Add flex display
       
       document.getElementById('sheet-link').href = `https://docs.google.com/spreadsheets/d/${spreadsheetId}`;
       document.getElementById('current-sheet-id').innerText = spreadsheetId;
