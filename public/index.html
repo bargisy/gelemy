@@ -875,8 +875,19 @@
         
         let allRows = [];
         if (data.valueRanges) {
-          data.valueRanges.forEach(vr => {
-            if (vr.values) allRows.push(...vr.values);
+          // FIX: We loop through the returned tabs using the index
+          data.valueRanges.forEach((vr, index) => {
+            if (vr.values) {
+              // We grab the precise, current Tab Name that this data came from
+              const currentTabName = validProjects[index];
+              
+              vr.values.forEach(row => {
+                // We overwrite the hardcoded, potentially stale project name in the sheet
+                // with the actual Tab name. This forces them to group perfectly.
+                row[1] = currentTabName;
+                allRows.push(row);
+              });
+            }
           });
         }
         
@@ -888,7 +899,7 @@
             filteredRows.push(row);
             
             const amount = parseFloat((row[3] || "0").replace(/[^0-9.-]+/g,"")) || 0;
-            const projName = row[1] || "Unknown";
+            const projName = row[1] || "Unknown"; // Now perfectly accurate based on the Tab!
             
             if (!projectStats[projName]) projectStats[projName] = { income: 0, expense: 0 };
             
