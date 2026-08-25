@@ -1,33 +1,43 @@
-const CACHE_NAME = 'fintrack-v3';
+// --- PWA INSTALL PROMPT LOGIC ---
+    let deferredPrompt;
+    
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // Prevent Chrome from showing the mini-infobar automatically
+      e.preventDefault();
+      deferredPrompt = e;
+      
+      // Show the button in Settings
+      const installBtn = document.getElementById('install-app-btn');
+      if (installBtn) installBtn.classList.remove('hidden');
 
-self.addEventListener('install', (event) => {
-  self.skipWaiting();
-});
+      // Show the Global Banner at the top of the screen
+      const banner = document.getElementById('install-banner');
+      const bannerBtn = document.getElementById('banner-install-btn');
+      if (banner) banner.classList.remove('hidden');
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
-  );
-  self.clients.claim();
-});
+      // Handle Banner Click
+      if (bannerBtn) {
+        bannerBtn.addEventListener('click', async () => {
+          banner.classList.add('hidden'); // Hide banner
+          if (installBtn) installBtn.classList.add('hidden'); // Hide settings button
+          
+          deferredPrompt.prompt(); // Show the browser's native install dialog
+          const { outcome } = await deferredPrompt.userChoice;
+          console.log(`User response to the install prompt: ${outcome}`);
+          deferredPrompt = null;
+        });
+      }
 
-self.addEventListener('fetch', (event) => {
-  // Ignore Google API requests
-  if (event.request.url.includes('googleapis.com')) {
-    return;
-  }
-
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        if (response.ok && event.request.method === 'GET') {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-        }
-        return response;
-      })
-      .catch(() => caches.match(event.request))
-  );
-});
+      // Handle Settings Button Click
+      if (installBtn) {
+        installBtn.addEventListener('click', async () => {
+          banner.classList.add('hidden'); 
+          installBtn.classList.add('hidden'); 
+          
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          console.log(`User response to the install prompt: ${outcome}`);
+          deferredPrompt = null;
+        });
+      }
+    });
