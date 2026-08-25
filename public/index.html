@@ -26,10 +26,21 @@
     }
   </script>
 </head>
-<body class="bg-gray-100 text-gray-900 font-sans min-h-screen flex justify-center pb-20 sm:p-4">
+<body class="bg-gray-100 text-gray-900 font-sans min-h-screen flex flex-col items-center pb-20 sm:p-4">
+
+  <!-- Global Install Banner -->
+  <div id="install-banner" class="hidden w-full max-w-md bg-[#1A4BAF] text-white px-4 py-3 flex justify-between items-center shadow-md z-50 transition-all sm:rounded-t-xl">
+    <div class="flex items-center gap-3">
+      <span class="text-xl">📲</span>
+      <span class="text-sm font-medium">Install FinTrack for quick offline access</span>
+    </div>
+    <button id="banner-install-btn" class="bg-white text-[#1A4BAF] px-4 py-1.5 rounded-lg text-sm font-bold shadow-sm hover:bg-gray-100 transition-colors shrink-0 ml-2">
+      Install
+    </button>
+  </div>
 
   <!-- Landing / Login View -->
-  <div id="landing-view" class="w-full max-w-md sm:mt-10 bg-white sm:rounded-xl shadow-sm sm:shadow-lg p-8 text-center transition-all duration-300">
+  <div id="landing-view" class="w-full max-w-md sm:mt-10 bg-white sm:rounded-xl shadow-sm sm:shadow-lg p-8 text-center transition-all duration-300 mt-auto mb-auto">
     <div class="w-16 h-16 bg-blue-50 text-[#1A4BAF] rounded-full flex items-center justify-center mx-auto mb-6">
       <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
     </div>
@@ -42,7 +53,7 @@
   </div>
 
   <!-- Main App View -->
-  <div id="app-view" class="w-full max-w-md bg-white sm:rounded-xl shadow-sm sm:shadow-lg hidden flex-col h-screen sm:h-auto overflow-hidden">
+  <div id="app-view" class="w-full max-w-md bg-white sm:rounded-b-xl sm:rounded-t-none shadow-sm sm:shadow-lg hidden flex-col h-screen sm:h-auto overflow-hidden">
     
     <!-- Header Navigation -->
     <div class="flex border-b border-gray-200 bg-white shrink-0">
@@ -181,7 +192,6 @@
             </button>
           </div>
           
-          <!-- New Custom PWA Install Button -->
           <button id="install-app-btn" class="hidden w-full bg-blue-50 hover:bg-blue-100 text-[#1A4BAF] font-medium py-2.5 rounded-lg transition-colors text-sm border border-blue-200 mt-4">
             📲 Install App to Home Screen
           </button>
@@ -233,20 +243,43 @@
       // Prevent Chrome from showing the mini-infobar automatically
       e.preventDefault();
       deferredPrompt = e;
-      // Show our custom Install button in the Settings tab
+      
+      // Show the button in Settings
       const installBtn = document.getElementById('install-app-btn');
-      installBtn.classList.remove('hidden');
+      if (installBtn) installBtn.classList.remove('hidden');
 
-      installBtn.addEventListener('click', async () => {
-        installBtn.classList.add('hidden'); // Hide button once clicked
-        deferredPrompt.prompt(); // Show the browser's native install dialog
-        const { outcome } = await deferredPrompt.userChoice;
-        console.log(`User response to the install prompt: ${outcome}`);
-        deferredPrompt = null;
-      });
+      // Show the Global Banner at the top of the screen
+      const banner = document.getElementById('install-banner');
+      const bannerBtn = document.getElementById('banner-install-btn');
+      if (banner) banner.classList.remove('hidden');
+
+      // Handle Banner Click
+      if (bannerBtn) {
+        bannerBtn.addEventListener('click', async () => {
+          banner.classList.add('hidden'); // Hide banner
+          if (installBtn) installBtn.classList.add('hidden'); // Hide settings button
+          
+          deferredPrompt.prompt(); // Show the browser's native install dialog
+          const { outcome } = await deferredPrompt.userChoice;
+          console.log(`User response to the install prompt: ${outcome}`);
+          deferredPrompt = null;
+        });
+      }
+
+      // Handle Settings Button Click
+      if (installBtn) {
+        installBtn.addEventListener('click', async () => {
+          banner.classList.add('hidden'); 
+          installBtn.classList.add('hidden'); 
+          
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          console.log(`User response to the install prompt: ${outcome}`);
+          deferredPrompt = null;
+        });
+      }
     });
 
-    // Detect if user is on iOS and hasn't installed the app yet to show a hint
     const isIos = () => {
       const userAgent = window.navigator.userAgent.toLowerCase();
       return /iphone|ipad|ipod/.test(userAgent);
