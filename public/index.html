@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>Financial Tracker</title>
   
   <!-- PWA Meta Tags -->
@@ -26,10 +26,10 @@
     }
   </script>
 </head>
-<body class="bg-gray-100 text-gray-900 font-sans min-h-screen flex flex-col items-center sm:p-4">
+<body class="bg-gray-100 text-gray-900 font-sans m-0 p-0 sm:p-4 min-h-[100dvh] flex flex-col items-center sm:justify-center overflow-hidden sm:overflow-visible">
 
   <!-- Global Install Banner -->
-  <div id="install-banner" class="hidden w-full max-w-md bg-[#1A4BAF] text-white px-4 py-3 flex justify-between items-center shadow-md z-50 transition-all sm:rounded-t-xl">
+  <div id="install-banner" class="hidden w-full max-w-md bg-[#1A4BAF] text-white px-4 py-3 flex justify-between items-center shadow-md z-50 transition-all sm:rounded-t-xl absolute top-0 sm:relative">
     <div class="flex items-center gap-3">
       <span class="text-xl">📲</span>
       <span class="text-sm font-medium">Install FinTrack for quick offline access</span>
@@ -40,7 +40,7 @@
   </div>
 
   <!-- Landing / Login View -->
-  <div id="landing-view" class="w-full max-w-md sm:mt-10 bg-white sm:rounded-xl shadow-sm sm:shadow-lg p-8 text-center transition-all duration-300 mt-auto mb-auto">
+  <div id="landing-view" class="w-full max-w-md bg-white sm:rounded-xl shadow-sm sm:shadow-lg p-8 text-center flex flex-col justify-center h-[100dvh] sm:h-auto transition-all duration-300">
     <div class="w-16 h-16 bg-blue-50 text-[#1A4BAF] rounded-full flex items-center justify-center mx-auto mb-6">
       <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
     </div>
@@ -53,15 +53,15 @@
   </div>
 
   <!-- Main App View -->
-  <div id="app-view" class="w-full max-w-md bg-white sm:rounded-xl shadow-sm sm:shadow-lg hidden flex-col h-screen sm:h-[800px] overflow-hidden">
+  <div id="app-view" class="w-full max-w-md bg-white sm:rounded-xl shadow-sm sm:shadow-lg hidden flex-col h-[100dvh] sm:h-[800px] relative overflow-hidden">
     
     <!-- Top Header (Title Only) -->
-    <div class="flex items-center justify-center border-b border-gray-100 bg-white p-4 shrink-0 shadow-sm z-10">
+    <div class="flex items-center justify-center border-b border-gray-100 bg-white p-4 shrink-0 shadow-sm z-10 pt-[env(safe-area-inset-top)]">
       <h2 class="text-lg font-bold text-gray-800">Financial Tracker</h2>
     </div>
 
-    <!-- Scrollable Content Area -->
-    <div class="flex-1 overflow-y-auto p-6 bg-gray-50">
+    <!-- Scrollable Content Area (With deep padding at bottom to clear the nav bar) -->
+    <div class="flex-1 overflow-y-auto p-6 pb-28 bg-gray-50 relative">
 
       <!-- ================== TAB: REPORTS ================== -->
       <div id="tab-reports" class="hidden space-y-6">
@@ -203,7 +203,8 @@
     </div>
 
     <!-- ================== BOTTOM ICON NAVIGATION ================== -->
-    <div class="flex border-t border-gray-200 bg-white shrink-0 mt-auto shadow-[0_-2px_10px_rgba(0,0,0,0.05)] z-10 pb-safe">
+    <!-- Absolutely positioned to stay pinned directly to the bottom of the screen regardless of content height -->
+    <div class="absolute bottom-0 left-0 w-full flex border-t border-gray-200 bg-white shrink-0 shadow-[0_-4px_15px_rgba(0,0,0,0.03)] z-50 pb-[env(safe-area-inset-bottom)]">
       <button onclick="switchTab('reports')" id="nav-reports" class="flex-1 py-3 text-xs font-medium text-gray-400 flex flex-col items-center justify-center transition-colors">
         <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
         Reports
@@ -258,7 +259,6 @@
     const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
-    // Set button state if app is already installed
     if (isStandalone && installBtn) {
       installBtn.innerText = "✅ App is Installed";
       installBtn.disabled = true;
@@ -309,7 +309,6 @@
       if (installBtn) installBtn.classList.remove('hidden');
     }
 
-    // Helper to set entry form date/time to right now
     function setEntryDefaults() {
       const now = new Date();
       const offset = now.getTimezoneOffset() * 60000;
@@ -364,7 +363,6 @@
 
     // --- BOTTOM NAVIGATION LOGIC ---
     function switchTab(tabName) {
-      // Hide all tabs and reset icon colors
       ['reports', 'entry', 'settings'].forEach(t => {
         document.getElementById(`tab-${t}`).classList.add('hidden');
         const btn = document.getElementById(`nav-${t}`);
@@ -372,7 +370,6 @@
         btn.classList.add('text-gray-400');
       });
       
-      // Show selected tab and activate icon color
       document.getElementById(`tab-${tabName}`).classList.remove('hidden');
       const activeBtn = document.getElementById(`nav-${tabName}`);
       activeBtn.classList.remove('text-gray-400');
