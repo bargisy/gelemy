@@ -13,7 +13,7 @@
   <link rel="apple-touch-icon" href="/icon-192.png">
 
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Added Chart.js for the Net Profit Graph -->
+  <!-- Chart.js for the Net Profit Graph -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
@@ -31,7 +31,7 @@
 
 <body class="bg-gray-100 text-gray-900 font-sans m-0 p-0 flex justify-center min-h-screen">
 
-  <!-- Global Install Banner (Fixed with Close Button) -->
+  <!-- Global Install Banner -->
   <div id="install-banner" class="hidden fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-[#1A4BAF] text-white px-4 py-3 flex justify-between items-center shadow-lg z-50 transition-all pt-[max(0.75rem,env(safe-area-inset-top))]">
     <div class="flex items-center gap-3">
       <span class="text-xl">📲</span>
@@ -41,7 +41,6 @@
       <button id="banner-install-btn" class="bg-white text-[#1A4BAF] px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm hover:bg-gray-100 transition-colors">
         Install
       </button>
-      <!-- Close Button -->
       <button id="banner-close-btn" class="p-1 text-white opacity-80 hover:opacity-100 transition-opacity">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
       </button>
@@ -73,8 +72,8 @@
       <!-- ================== TAB: REPORTS ================== -->
       <div id="tab-reports" class="hidden space-y-6">
         <div>
-          <!-- Date Filter -->
-          <div class="grid grid-cols-2 gap-3 mb-3">
+          <!-- Date Filter Only -->
+          <div class="grid grid-cols-2 gap-3 mb-4">
             <div>
               <label class="block text-xs font-medium text-gray-500 mb-1">Start Date</label>
               <input type="date" id="report-start" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#009EFF] bg-white shadow-sm">
@@ -84,15 +83,7 @@
               <input type="date" id="report-end" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#009EFF] bg-white shadow-sm">
             </div>
           </div>
-          <!-- Project Filter Dropdown -->
-          <div class="mb-4">
-            <label class="block text-xs font-medium text-gray-500 mb-1">Project Filter</label>
-            <select id="report-project-filter" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#009EFF] bg-white shadow-sm">
-              <option value="ALL">All Projects (Total)</option>
-              <!-- Populated Dynamically -->
-            </select>
-          </div>
-          <button onclick="generateReport()" id="btn-generate-report" class="w-full bg-gray-800 hover:bg-gray-900 text-white font-medium py-3 rounded-lg transition-colors text-sm shadow-md">
+          <button onclick="fetchAndGenerateReport()" id="btn-generate-report" class="w-full bg-gray-800 hover:bg-gray-900 text-white font-medium py-3 rounded-lg transition-colors text-sm shadow-md">
             Generate Report
           </button>
         </div>
@@ -102,7 +93,12 @@
           <!-- Segmented Sub-Tab Control -->
           <div class="flex p-1 bg-gray-200 rounded-lg shadow-inner">
             <button onclick="switchReportTab('summary')" id="subnav-summary" class="flex-1 py-1.5 text-sm font-medium bg-white shadow-sm rounded-md text-gray-800 transition-all">Summary</button>
-            <button onclick="switchReportTab('transactions')" id="subnav-transactions" class="flex-1 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-all">History</button>
+            <button onclick="switchReportTab('transactions')" id="subnav-transactions" class="flex-1 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-all bg-transparent">History</button>
+          </div>
+
+          <!-- Dynamic Project Filter Chips -->
+          <div id="project-filter-chips" class="flex flex-wrap gap-2 mb-2">
+            <!-- Populated via JS -->
           </div>
 
           <!-- SUMMARY SUB-TAB -->
@@ -110,11 +106,11 @@
             <!-- Income/Expense -->
             <div class="grid grid-cols-2 gap-3">
               <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                <p class="text-xs font-medium text-gray-500">Total Income</p>
+                <p class="text-xs font-medium text-gray-500">Filtered Income</p>
                 <p class="text-lg font-bold text-green-600" id="rep-income">$0.00</p>
               </div>
               <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                <p class="text-xs font-medium text-gray-500">Total Expenses</p>
+                <p class="text-xs font-medium text-gray-500">Filtered Expenses</p>
                 <p class="text-lg font-bold text-red-600" id="rep-expense">$0.00</p>
               </div>
             </div>
@@ -259,25 +255,6 @@
     </nav>
   </div>
 
-  <!-- Custom Google Drive Picker Modal -->
-  <div id="drive-picker-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50 p-4">
-    <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 relative flex flex-col max-h-[80vh]">
-      <div class="flex justify-between items-center mb-4 shrink-0">
-        <h3 class="text-lg font-bold text-gray-800">Switch Database</h3>
-        <button onclick="closeDrivePicker()" class="text-gray-400 hover:text-gray-600">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-        </button>
-      </div>
-      <p class="text-xs text-gray-500 mb-4 shrink-0">Select the master spreadsheet you want this device to sync with.</p>
-      <div class="flex-1 overflow-y-auto mb-4 border border-gray-100 rounded-lg bg-gray-50 p-2">
-        <ul id="drive-file-list" class="space-y-2"></ul>
-        <div id="drive-picker-loading" class="text-center py-6 hidden">
-          <p class="text-sm text-gray-500">Searching your Google Drive...</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <script>
     // --- CONFIGURATION ---
     const CLIENT_ID = "989585036388-a9gvr4po1ol1c4urh25iegcc0cirtc06.apps.googleusercontent.com"; 
@@ -290,8 +267,11 @@
     let projects = JSON.parse(localStorage.getItem('tracker_projects')) || ["General"];
     let offlineQueue = JSON.parse(localStorage.getItem('tracker_offline_queue')) || [];
     
-    // Global variable to hold our Chart.js instance
+    // --- REPORTING STATE VARIABLES ---
     let profitChartInstance = null;
+    let currentReportBaseData = []; // Holds all data fetched for the current date range
+    let activeProjectFilters = new Set(); // Keeps track of which chips are toggled ON
+    let availableProjectsInDateRange = []; // Projects that actually have data
 
     // --- PWA INSTALL PROMPT LOGIC ---
     let deferredPrompt = null;
@@ -344,7 +324,6 @@
           }
         });
         
-        // Handle the banner dismissal
         bannerCloseBtn.addEventListener('click', () => {
           banner.classList.add('hidden');
           deferredPrompt = null;
@@ -480,96 +459,7 @@
       window.location.reload();
     }
 
-    // --- CUSTOM DRIVE PICKER LOGIC ---
-    async function openDrivePicker() {
-      const modal = document.getElementById('drive-picker-modal');
-      const list = document.getElementById('drive-file-list');
-      const loader = document.getElementById('drive-picker-loading');
-      
-      modal.classList.remove('hidden');
-      list.innerHTML = '';
-      loader.classList.remove('hidden');
-
-      try {
-        const query = encodeURIComponent("mimeType='application/vnd.google-apps.spreadsheet' and trashed=false");
-        const url = `https://www.googleapis.com/drive/v3/files?q=${query}&spaces=drive&fields=files(id,name,createdTime)&orderBy=createdTime%20desc`;
-        
-        const response = await fetch(url, { headers: { "Authorization": `Bearer ${accessToken}` } });
-        const data = await response.json();
-        loader.classList.add('hidden');
-
-        if (!response.ok) throw new Error(data.error?.message || "Failed to fetch files.");
-
-        if (data.files && data.files.length > 0) {
-          data.files.forEach(file => {
-            const date = new Date(file.createdTime).toLocaleDateString();
-            const isCurrent = file.id === spreadsheetId;
-            list.innerHTML += `
-              <li>
-                <button onclick="linkSelectedSheet('${file.id}')" ${isCurrent ? 'disabled' : ''} class="w-full text-left bg-white border ${isCurrent ? 'border-green-400 bg-green-50' : 'border-gray-200 hover:border-[#009EFF]'} p-3 rounded-lg transition-colors flex justify-between items-center group">
-                  <div>
-                    <p class="font-bold text-sm ${isCurrent ? 'text-green-800' : 'text-gray-800 group-hover:text-[#1A4BAF]'}">${file.name} ${isCurrent ? '(Active)' : ''}</p>
-                    <p class="text-xs text-gray-500">Created: ${date}</p>
-                  </div>
-                  <span class="text-xs font-medium text-[#009EFF] opacity-0 group-hover:opacity-100 transition-opacity">Select</span>
-                </button>
-              </li>`;
-          });
-        } else {
-          list.innerHTML = '<li class="text-sm text-gray-500 text-center py-4">No spreadsheets found.</li>';
-        }
-      } catch (err) {
-        loader.classList.add('hidden');
-        list.innerHTML = `<li class="text-sm text-red-500 text-center py-4">Error: ${err.message}</li>`;
-      }
-    }
-
-    function closeDrivePicker() {
-      document.getElementById('drive-picker-modal').classList.add('hidden');
-    }
-
-    async function linkSelectedSheet(fileId) {
-      closeDrivePicker();
-      spreadsheetId = fileId;
-      localStorage.setItem("financial_tracker_sheet_id", spreadsheetId);
-      await saveConfigToCloud(spreadsheetId);
-      document.getElementById('current-sheet-id').innerText = spreadsheetId;
-      document.getElementById('sheet-link').href = `https://docs.google.com/spreadsheets/d/${spreadsheetId}`;
-      await fetchSheetDetails();
-      await fetchProjects();
-      alert("Database switched successfully!");
-    }
-
-    async function createNewTrackerManually() {
-      const sheetName = prompt("Enter a name for your new tracker database:", "Daily Financial Tracker");
-      if (!sheetName) return; 
-
-      const btn = document.getElementById('btn-create-new');
-      const originalText = btn.innerText;
-      btn.innerText = "Creating...";
-      btn.disabled = true;
-
-      try {
-        await createMasterSheet(sheetName); 
-        await saveConfigToCloud(spreadsheetId);
-        localStorage.setItem("financial_tracker_sheet_id", spreadsheetId);
-        
-        updateProjectCache();
-        
-        document.getElementById('current-sheet-id').innerText = spreadsheetId;
-        document.getElementById('sheet-link').href = `https://docs.google.com/spreadsheets/d/${spreadsheetId}`;
-        await fetchSheetDetails();
-        
-        alert(`New database "${sheetName}" created and linked successfully!`);
-      } catch (err) {
-        alert("Failed to create new tracker database.");
-      }
-      
-      btn.innerText = originalText;
-      btn.disabled = false;
-    }
-
-    // --- INITIALIZATION & SYNC LOGIC ---
+    // --- INITIALIZATION & SYNC LOGIC (Unchanged) ---
     async function initializeDatabase() {
       const btn = document.getElementById('auth-btn');
       btn.innerText = "Syncing with Google Drive...";
@@ -697,7 +587,6 @@
       return data.sheets || [];
     }
 
-    // --- PROJECT MANAGEMENT ---
     async function fetchProjects() {
       try {
         const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Settings!A:A`, {
@@ -732,17 +621,13 @@
     function renderProjects() {
       const select = document.getElementById('project');
       const list = document.getElementById('project-list');
-      const filterSelect = document.getElementById('report-project-filter');
       
       const currentSelection = select.value;
-      const currentFilterSelection = filterSelect.value;
       
       select.innerHTML = ''; list.innerHTML = ''; 
-      filterSelect.innerHTML = '<option value="ALL">All Projects (Total)</option>';
 
       projects.forEach((p, i) => {
         select.add(new Option(p, p));
-        filterSelect.add(new Option(p, p));
         list.innerHTML += `
           <li class="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-100">
             <span class="text-sm font-medium truncate flex-1">${p}</span>
@@ -754,7 +639,6 @@
       });
       
       if (projects.includes(currentSelection)) select.value = currentSelection;
-      if (projects.includes(currentFilterSelection) || currentFilterSelection === 'ALL') filterSelect.value = currentFilterSelection;
     }
 
     async function addProject() {
@@ -918,14 +802,13 @@
       setTimeout(() => { statusMsg.classList.add('hidden'); }, 3000);
     }
 
-    // --- REPORTING LOGIC ---
-    async function generateReport() {
+    // --- REFACTORED REPORTING LOGIC WITH CHIP FILTERS ---
+    async function fetchAndGenerateReport() {
       if (!navigator.onLine) return alert("You must be online to generate a report.");
       
       const btn = document.getElementById('btn-generate-report');
       const startStr = document.getElementById('report-start').value;
       const endStr = document.getElementById('report-end').value;
-      const selectedProjectFilter = document.getElementById('report-project-filter').value;
       
       btn.innerText = "Fetching Data..."; btn.disabled = true;
 
@@ -945,176 +828,35 @@
         
         const data = await response.json();
         
-        let allRows = [];
+        currentReportBaseData = []; // Clear previous run
+        
         if (data.valueRanges) {
-          // Loop through the returned tabs using the index to guarantee accurate Project Name matching
           data.valueRanges.forEach((vr, index) => {
             if (vr.values) {
               const currentTabName = validProjects[index];
               vr.values.forEach(row => {
-                row[1] = currentTabName; // Force the tab name as the definitive project name
-                allRows.push(row);
+                row[1] = currentTabName; // Force accurate project name based on tab
+                
+                // Only keep rows inside the requested date range
+                if (row[0] >= startStr && row[0] <= endStr) {
+                  currentReportBaseData.push(row);
+                }
               });
             }
           });
         }
         
-        let totalIncome = 0; let totalExpense = 0; let projectStats = {};
-        let filteredRows = [];
-        let dailyNetObj = {}; // For the Graph
-
-        allRows.forEach(row => {
-          if (row[0] >= startStr && row[0] <= endStr) {
-            const projName = row[1] || "Unknown";
-            
-            // Filter out rows if a specific project is selected
-            if (selectedProjectFilter !== 'ALL' && projName !== selectedProjectFilter) return;
-
-            filteredRows.push(row);
-            
-            const date = row[0];
-            const type = row[2];
-            const amount = parseFloat((row[3] || "0").replace(/[^0-9.-]+/g,"")) || 0;
-            
-            if (!projectStats[projName]) projectStats[projName] = { income: 0, expense: 0 };
-            if (!dailyNetObj[date]) dailyNetObj[date] = 0;
-            
-            if (type === "Income") { 
-              totalIncome += amount; 
-              projectStats[projName].income += amount; 
-              dailyNetObj[date] += amount;
-            } 
-            else if (type === "Expense") { 
-              totalExpense += amount; 
-              projectStats[projName].expense += amount; 
-              dailyNetObj[date] -= amount;
-            }
-          }
-        });
-
-        // 1. UPDATE SUMMARY DATA
-        const net = totalIncome - totalExpense;
-        document.getElementById('rep-income').innerText = `$${totalIncome.toFixed(2)}`;
-        document.getElementById('rep-expense').innerText = `$${totalExpense.toFixed(2)}`;
-        document.getElementById('rep-net').innerText = `$${Math.abs(net).toFixed(2)}`;
-        document.getElementById('rep-net').className = `text-2xl font-bold ${net >= 0 ? 'text-green-600' : 'text-red-600'}`;
-
-        // 2. GENERATE GRAPH DATA
-        const sortedDates = Object.keys(dailyNetObj).sort();
-        const chartLabels = [];
-        const chartData = [];
+        // Find which projects actually have data in this date range
+        const projectsWithData = new Set(currentReportBaseData.map(r => r[1]));
+        availableProjectsInDateRange = Array.from(projectsWithData);
         
-        sortedDates.forEach(date => {
-           // Format Date for x-axis (e.g., '08-25')
-           const [y, m, d] = date.split('-');
-           chartLabels.push(`${m}/${d}`);
-           chartData.push(dailyNetObj[date]);
-        });
+        // By default, turn ALL filters ON
+        activeProjectFilters = new Set(availableProjectsInDateRange);
 
-        // Destroy previous chart if it exists to avoid overlapping canvases
-        if (profitChartInstance) {
-          profitChartInstance.destroy();
-        }
+        // Draw the chips and render the initial filtered view
+        renderFilterChips();
+        renderFilteredReport();
 
-        // Draw new Chart.js Line Graph
-        const ctx = document.getElementById('profitChart').getContext('2d');
-        profitChartInstance = new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels: chartLabels,
-            datasets: [{
-              label: 'Daily Net Profit',
-              data: chartData,
-              borderColor: '#1A4BAF',
-              backgroundColor: 'rgba(26, 75, 175, 0.1)',
-              borderWidth: 2,
-              pointRadius: 3,
-              fill: true,
-              tension: 0.3 // Adds a slight curve to the line
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-              y: { 
-                 ticks: { callback: function(value) { return '$' + value; }, font: { size: 10 } },
-                 grid: { color: '#f3f4f6' }
-              },
-              x: {
-                 ticks: { font: { size: 10 } },
-                 grid: { display: false }
-              }
-            }
-          }
-        });
-
-        // 3. PROJECT BREAKDOWN LIST
-        const projList = document.getElementById('rep-projects');
-        projList.innerHTML = '';
-        if (Object.keys(projectStats).length === 0) {
-          projList.innerHTML = '<li class="p-4 text-gray-500 text-center italic">No transactions found.</li>';
-        } else {
-          for (const [projName, stats] of Object.entries(projectStats)) {
-            const pNet = stats.income - stats.expense;
-            projList.innerHTML += `
-              <li class="px-4 py-3 flex justify-between items-center">
-                <div>
-                  <p class="font-bold text-gray-800">${projName}</p>
-                  <p class="text-xs text-gray-500">In: $${stats.income.toFixed(2)} | Out: $${stats.expense.toFixed(2)}</p>
-                </div>
-                <span class="font-bold ${pNet >= 0 ? 'text-green-600' : 'text-red-600'}">${pNet >= 0 ? '+' : '-'}$${Math.abs(pNet).toFixed(2)}</span>
-              </li>`;
-          }
-        }
-
-        // 4. TRANSACTION HISTORY TAB
-        const txList = document.getElementById('rep-transactions');
-        txList.innerHTML = '<div class="space-y-2" id="tx-items"></div>';
-        const txItems = document.getElementById('tx-items');
-
-        if (filteredRows.length === 0) {
-          txItems.innerHTML = '<p class="text-sm text-gray-500 italic text-center p-4">No transactions match your filters.</p>';
-        } else {
-          filteredRows.sort((a, b) => {
-            const dateA = a[0] + ' ' + (a[5] || '00:00');
-            const dateB = b[0] + ' ' + (b[5] || '00:00');
-            return dateB.localeCompare(dateA); 
-          });
-
-          filteredRows.forEach(row => {
-            const date = row[0];
-            const proj = row[1];
-            const type = row[2];
-            const amount = parseFloat((row[3] || "0").replace(/[^0-9.-]+/g,"")) || 0;
-            const notes = row[4] || "No description";
-            const time = row[5] || "";
-            
-            const isIncome = type === "Income";
-            const amountStr = (isIncome ? '+' : '-') + '$' + Math.abs(amount).toFixed(2);
-            
-            let timeFormatted = time;
-            if (time) {
-              const [h, m] = time.split(':');
-              const ampm = h >= 12 ? 'PM' : 'AM';
-              const h12 = h % 12 || 12;
-              timeFormatted = `${h12}:${m} ${ampm}`;
-            }
-
-            txItems.innerHTML += `
-              <div class="bg-white p-3 rounded-lg border border-gray-100 shadow-sm flex justify-between items-center">
-                <div class="flex-1 min-w-0 pr-4">
-                  <p class="font-bold text-sm text-gray-800 truncate">${notes}</p>
-                  <p class="text-xs text-gray-500 truncate">${date} ${timeFormatted ? 'at ' + timeFormatted : ''} &bull; ${proj}</p>
-                </div>
-                <span class="font-bold text-sm ${isIncome ? 'text-green-600' : 'text-red-600'} shrink-0">${amountStr}</span>
-              </div>
-            `;
-          });
-        }
-
-        // Show the results section and default back to the Summary tab
         document.getElementById('report-results').classList.remove('hidden');
         switchReportTab('summary');
         
@@ -1122,6 +864,190 @@
         alert("Report Error: " + err.message);
       }
       btn.innerText = "Generate Report"; btn.disabled = false;
+    }
+
+    // Generates the Toggle Chips UI dynamically
+    function renderFilterChips() {
+      const container = document.getElementById('project-filter-chips');
+      container.innerHTML = '';
+      
+      if (availableProjectsInDateRange.length === 0) {
+        container.innerHTML = '<span class="text-xs text-gray-400 italic">No projects found for these dates.</span>';
+        return;
+      }
+
+      availableProjectsInDateRange.forEach(proj => {
+        const isActive = activeProjectFilters.has(proj);
+        const btnClass = isActive 
+          ? "px-3 py-1.5 rounded-full text-xs font-bold bg-[#1A4BAF] text-white shadow-sm transition-colors border border-transparent"
+          : "px-3 py-1.5 rounded-full text-xs font-medium bg-white text-gray-500 border border-gray-300 shadow-sm transition-colors hover:bg-gray-50";
+
+        container.innerHTML += `<button onclick="toggleProjectChip('${proj}')" class="${btnClass}">${proj}</button>`;
+      });
+    }
+
+    // Handles user clicking a chip
+    function toggleProjectChip(projName) {
+      if (activeProjectFilters.has(projName)) {
+        activeProjectFilters.delete(projName);
+      } else {
+        activeProjectFilters.add(projName);
+      }
+      renderFilterChips(); // Update chip colors immediately
+      renderFilteredReport(); // Recalculate chart/totals instantly
+    }
+
+    // Re-renders the math and DOM based on which chips are active
+    function renderFilteredReport() {
+      let totalIncome = 0; let totalExpense = 0; let projectStats = {};
+      let filteredRows = [];
+      let dailyNetObj = {}; // For the Graph
+
+      currentReportBaseData.forEach(row => {
+        const projName = row[1] || "Unknown";
+        
+        // If the chip is turned off, skip this row!
+        if (!activeProjectFilters.has(projName)) return;
+
+        filteredRows.push(row);
+        
+        const date = row[0];
+        const type = row[2];
+        const amount = parseFloat((row[3] || "0").replace(/[^0-9.-]+/g,"")) || 0;
+        
+        if (!projectStats[projName]) projectStats[projName] = { income: 0, expense: 0 };
+        if (!dailyNetObj[date]) dailyNetObj[date] = 0;
+        
+        if (type === "Income") { 
+          totalIncome += amount; 
+          projectStats[projName].income += amount; 
+          dailyNetObj[date] += amount;
+        } 
+        else if (type === "Expense") { 
+          totalExpense += amount; 
+          projectStats[projName].expense += amount; 
+          dailyNetObj[date] -= amount;
+        }
+      });
+
+      // 1. UPDATE SUMMARY DOM
+      const net = totalIncome - totalExpense;
+      document.getElementById('rep-income').innerText = `$${totalIncome.toFixed(2)}`;
+      document.getElementById('rep-expense').innerText = `$${totalExpense.toFixed(2)}`;
+      document.getElementById('rep-net').innerText = `$${Math.abs(net).toFixed(2)}`;
+      document.getElementById('rep-net').className = `text-2xl font-bold ${net >= 0 ? 'text-green-600' : 'text-red-600'}`;
+
+      // 2. GENERATE GRAPH DATA
+      const sortedDates = Object.keys(dailyNetObj).sort();
+      const chartLabels = [];
+      const chartData = [];
+      
+      sortedDates.forEach(date => {
+         const [y, m, d] = date.split('-');
+         chartLabels.push(`${m}/${d}`);
+         chartData.push(dailyNetObj[date]);
+      });
+
+      if (profitChartInstance) {
+        profitChartInstance.destroy();
+      }
+
+      const ctx = document.getElementById('profitChart').getContext('2d');
+      profitChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: chartLabels,
+          datasets: [{
+            label: 'Daily Net Profit',
+            data: chartData,
+            borderColor: '#1A4BAF',
+            backgroundColor: 'rgba(26, 75, 175, 0.1)',
+            borderWidth: 2,
+            pointRadius: 3,
+            fill: true,
+            tension: 0.3 
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { 
+               ticks: { callback: function(value) { return '$' + value; }, font: { size: 10 } },
+               grid: { color: '#f3f4f6' }
+            },
+            x: {
+               ticks: { font: { size: 10 } },
+               grid: { display: false }
+            }
+          }
+        }
+      });
+
+      // 3. PROJECT BREAKDOWN LIST
+      const projList = document.getElementById('rep-projects');
+      projList.innerHTML = '';
+      if (Object.keys(projectStats).length === 0) {
+        projList.innerHTML = '<li class="p-4 text-gray-500 text-center italic">No data selected.</li>';
+      } else {
+        for (const [projName, stats] of Object.entries(projectStats)) {
+          const pNet = stats.income - stats.expense;
+          projList.innerHTML += `
+            <li class="px-4 py-3 flex justify-between items-center">
+              <div>
+                <p class="font-bold text-gray-800">${projName}</p>
+                <p class="text-xs text-gray-500">In: $${stats.income.toFixed(2)} | Out: $${stats.expense.toFixed(2)}</p>
+              </div>
+              <span class="font-bold ${pNet >= 0 ? 'text-green-600' : 'text-red-600'}">${pNet >= 0 ? '+' : '-'}$${Math.abs(pNet).toFixed(2)}</span>
+            </li>`;
+        }
+      }
+
+      // 4. TRANSACTION HISTORY TAB
+      const txList = document.getElementById('rep-transactions');
+      txList.innerHTML = '<div class="space-y-2" id="tx-items"></div>';
+      const txItems = document.getElementById('tx-items');
+
+      if (filteredRows.length === 0) {
+        txItems.innerHTML = '<p class="text-sm text-gray-500 italic text-center p-4">No transactions selected.</p>';
+      } else {
+        filteredRows.sort((a, b) => {
+          const dateA = a[0] + ' ' + (a[5] || '00:00');
+          const dateB = b[0] + ' ' + (b[5] || '00:00');
+          return dateB.localeCompare(dateA); 
+        });
+
+        filteredRows.forEach(row => {
+          const date = row[0];
+          const proj = row[1];
+          const type = row[2];
+          const amount = parseFloat((row[3] || "0").replace(/[^0-9.-]+/g,"")) || 0;
+          const notes = row[4] || "No description";
+          const time = row[5] || "";
+          
+          const isIncome = type === "Income";
+          const amountStr = (isIncome ? '+' : '-') + '$' + Math.abs(amount).toFixed(2);
+          
+          let timeFormatted = time;
+          if (time) {
+            const [h, m] = time.split(':');
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            const h12 = h % 12 || 12;
+            timeFormatted = `${h12}:${m} ${ampm}`;
+          }
+
+          txItems.innerHTML += `
+            <div class="bg-white p-3 rounded-lg border border-gray-100 shadow-sm flex justify-between items-center">
+              <div class="flex-1 min-w-0 pr-4">
+                <p class="font-bold text-sm text-gray-800 truncate">${notes}</p>
+                <p class="text-xs text-gray-500 truncate">${date} ${timeFormatted ? 'at ' + timeFormatted : ''} &bull; ${proj}</p>
+              </div>
+              <span class="font-bold text-sm ${isIncome ? 'text-green-600' : 'text-red-600'} shrink-0">${amountStr}</span>
+            </div>
+          `;
+        });
+      }
     }
   </script>
 </body>
