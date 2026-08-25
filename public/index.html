@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <!-- Added viewport-fit=cover to extend layout into notch areas on modern phones -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
   <title>Financial Tracker</title>
   
@@ -14,6 +13,8 @@
   <link rel="apple-touch-icon" href="/icon-192.png">
 
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Added Chart.js for the Net Profit Graph -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <!-- Register Service Worker -->
@@ -28,18 +29,23 @@
   </script>
 </head>
 
-<!-- We let the body handle the scrolling natively. flex and justify-center keep the app centered on desktop monitors -->
 <body class="bg-gray-100 text-gray-900 font-sans m-0 p-0 flex justify-center min-h-screen">
 
-  <!-- Global Install Banner (Fixed to top center) -->
+  <!-- Global Install Banner (Fixed with Close Button) -->
   <div id="install-banner" class="hidden fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-[#1A4BAF] text-white px-4 py-3 flex justify-between items-center shadow-lg z-50 transition-all pt-[max(0.75rem,env(safe-area-inset-top))]">
     <div class="flex items-center gap-3">
       <span class="text-xl">📲</span>
-      <span class="text-sm font-medium">Install FinTrack for quick offline access</span>
+      <span class="text-xs sm:text-sm font-medium leading-tight">Install FinTrack for quick offline access</span>
     </div>
-    <button id="banner-install-btn" class="bg-white text-[#1A4BAF] px-4 py-1.5 rounded-lg text-sm font-bold shadow-sm hover:bg-gray-100 transition-colors shrink-0 ml-2">
-      Install
-    </button>
+    <div class="flex items-center gap-2 shrink-0">
+      <button id="banner-install-btn" class="bg-white text-[#1A4BAF] px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm hover:bg-gray-100 transition-colors">
+        Install
+      </button>
+      <!-- Close Button -->
+      <button id="banner-close-btn" class="p-1 text-white opacity-80 hover:opacity-100 transition-opacity">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+    </div>
   </div>
 
   <!-- Landing / Login View -->
@@ -56,59 +62,88 @@
   </div>
 
   <!-- Main App View -->
-  <!-- Takes full height of screen, borders act as phone edges on desktop -->
   <div id="app-view" class="hidden w-full max-w-md bg-white min-h-screen shadow-2xl sm:border-x sm:border-gray-200 flex-col relative">
     
-    <!-- Top Header (Sticky: stays at top while scrolling) -->
     <header class="sticky top-0 bg-white/95 backdrop-blur-md border-b border-gray-100 p-4 z-40 pt-[max(1rem,env(safe-area-inset-top))]">
       <h2 class="text-lg font-bold text-gray-800 text-center">Financial Tracker</h2>
     </header>
 
-    <!-- Main Scrollable Content Area -->
-    <!-- pb-32 adds 128px of empty space at the absolute bottom so content clears the nav bar completely -->
     <main class="flex-1 p-6 pb-32 bg-gray-50 z-10 min-h-screen">
 
       <!-- ================== TAB: REPORTS ================== -->
       <div id="tab-reports" class="hidden space-y-6">
         <div>
-          <div class="grid grid-cols-2 gap-3 mb-4">
+          <!-- Date Filter -->
+          <div class="grid grid-cols-2 gap-3 mb-3">
             <div>
               <label class="block text-xs font-medium text-gray-500 mb-1">Start Date</label>
-              <input type="date" id="report-start" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#009EFF]">
+              <input type="date" id="report-start" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#009EFF] bg-white shadow-sm">
             </div>
             <div>
               <label class="block text-xs font-medium text-gray-500 mb-1">End Date</label>
-              <input type="date" id="report-end" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#009EFF]">
+              <input type="date" id="report-end" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#009EFF] bg-white shadow-sm">
             </div>
           </div>
-          <button onclick="generateReport()" id="btn-generate-report" class="w-full bg-gray-800 hover:bg-gray-900 text-white font-medium py-2.5 rounded-lg transition-colors text-sm">
+          <!-- Project Filter Dropdown -->
+          <div class="mb-4">
+            <label class="block text-xs font-medium text-gray-500 mb-1">Project Filter</label>
+            <select id="report-project-filter" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#009EFF] bg-white shadow-sm">
+              <option value="ALL">All Projects (Total)</option>
+              <!-- Populated Dynamically -->
+            </select>
+          </div>
+          <button onclick="generateReport()" id="btn-generate-report" class="w-full bg-gray-800 hover:bg-gray-900 text-white font-medium py-3 rounded-lg transition-colors text-sm shadow-md">
             Generate Report
           </button>
         </div>
 
         <div id="report-results" class="hidden space-y-4">
-          <div class="grid grid-cols-2 gap-3">
-            <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-              <p class="text-xs font-medium text-gray-500">Total Income</p>
-              <p class="text-lg font-bold text-green-600" id="rep-income">$0.00</p>
-            </div>
-            <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-              <p class="text-xs font-medium text-gray-500">Total Expenses</p>
-              <p class="text-lg font-bold text-red-600" id="rep-expense">$0.00</p>
-            </div>
-          </div>
-          <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex justify-between items-center">
-            <p class="text-sm font-medium text-gray-500">Net Profit</p>
-            <p class="text-xl font-bold" id="rep-net">$0.00</p>
-          </div>
-          <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-            <div class="bg-gray-100 px-4 py-2 border-b border-gray-200">
-              <p class="text-xs font-bold text-gray-600 uppercase tracking-wider">By Project</p>
-            </div>
-            <ul id="rep-projects" class="divide-y divide-gray-100 text-sm"></ul>
+          
+          <!-- Segmented Sub-Tab Control -->
+          <div class="flex p-1 bg-gray-200 rounded-lg shadow-inner">
+            <button onclick="switchReportTab('summary')" id="subnav-summary" class="flex-1 py-1.5 text-sm font-medium bg-white shadow-sm rounded-md text-gray-800 transition-all">Summary</button>
+            <button onclick="switchReportTab('transactions')" id="subnav-transactions" class="flex-1 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-all">History</button>
           </div>
 
-          <div id="rep-transactions" class="mt-6 pt-2"></div>
+          <!-- SUMMARY SUB-TAB -->
+          <div id="subtab-summary" class="space-y-4">
+            <!-- Income/Expense -->
+            <div class="grid grid-cols-2 gap-3">
+              <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                <p class="text-xs font-medium text-gray-500">Total Income</p>
+                <p class="text-lg font-bold text-green-600" id="rep-income">$0.00</p>
+              </div>
+              <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                <p class="text-xs font-medium text-gray-500">Total Expenses</p>
+                <p class="text-lg font-bold text-red-600" id="rep-expense">$0.00</p>
+              </div>
+            </div>
+            
+            <!-- Net Profit & Chart -->
+            <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col">
+              <div class="flex justify-between items-center mb-4">
+                <p class="text-sm font-medium text-gray-500">Net Profit</p>
+                <p class="text-2xl font-bold" id="rep-net">$0.00</p>
+              </div>
+              <div class="w-full h-40 relative">
+                <canvas id="profitChart"></canvas>
+              </div>
+            </div>
+
+            <!-- Project Breakdown List -->
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden" id="rep-projects-container">
+              <div class="bg-gray-100 px-4 py-2 border-b border-gray-200">
+                <p class="text-xs font-bold text-gray-600 uppercase tracking-wider">Breakdown</p>
+              </div>
+              <ul id="rep-projects" class="divide-y divide-gray-100 text-sm"></ul>
+            </div>
+          </div>
+
+          <!-- TRANSACTIONS SUB-TAB -->
+          <div id="subtab-transactions" class="hidden">
+            <div id="rep-transactions"></div>
+          </div>
+
         </div>
       </div>
 
@@ -208,7 +243,6 @@
     </main>
 
     <!-- ================== BOTTOM ICON NAVIGATION ================== -->
-    <!-- Fixed: Snaps perfectly to the viewport bottom over the scrolling main content -->
     <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/95 backdrop-blur-md border-t border-gray-200 z-40 pb-[max(0px,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(0,0,0,0.05)] flex">
       <button onclick="switchTab('reports')" id="nav-reports" class="flex-1 py-3 text-xs font-medium text-gray-400 flex flex-col items-center justify-center transition-colors">
         <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
@@ -255,11 +289,15 @@
     
     let projects = JSON.parse(localStorage.getItem('tracker_projects')) || ["General"];
     let offlineQueue = JSON.parse(localStorage.getItem('tracker_offline_queue')) || [];
+    
+    // Global variable to hold our Chart.js instance
+    let profitChartInstance = null;
 
     // --- PWA INSTALL PROMPT LOGIC ---
     let deferredPrompt = null;
     const installBtn = document.getElementById('install-app-btn');
     const banner = document.getElementById('install-banner');
+    const bannerCloseBtn = document.getElementById('banner-close-btn');
     
     const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
@@ -283,7 +321,6 @@
           if (deferredPrompt) {
             deferredPrompt.prompt();
             const { outcome } = await deferredPrompt.userChoice;
-            console.log(`Install prompt outcome: ${outcome}`);
             deferredPrompt = null;
             if (banner) banner.classList.add('hidden');
           } else {
@@ -305,6 +342,12 @@
             banner.classList.add('hidden');
             if (installBtn) installBtn.classList.add('hidden');
           }
+        });
+        
+        // Handle the banner dismissal
+        bannerCloseBtn.addEventListener('click', () => {
+          banner.classList.add('hidden');
+          deferredPrompt = null;
         });
       }
     }
@@ -366,7 +409,27 @@
       }
     }
 
-    // --- BOTTOM NAVIGATION LOGIC ---
+    // --- REPORT SUB-TAB SWITCHING ---
+    function switchReportTab(tab) {
+      const summaryBtn = document.getElementById('subnav-summary');
+      const transBtn = document.getElementById('subnav-transactions');
+      const summaryView = document.getElementById('subtab-summary');
+      const transView = document.getElementById('subtab-transactions');
+
+      if (tab === 'summary') {
+        summaryBtn.className = "flex-1 py-1.5 text-sm font-medium bg-white shadow-sm rounded-md text-gray-800 transition-all";
+        transBtn.className = "flex-1 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-all bg-transparent";
+        summaryView.classList.remove('hidden');
+        transView.classList.add('hidden');
+      } else {
+        transBtn.className = "flex-1 py-1.5 text-sm font-medium bg-white shadow-sm rounded-md text-gray-800 transition-all";
+        summaryBtn.className = "flex-1 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-all bg-transparent";
+        transView.classList.remove('hidden');
+        summaryView.classList.add('hidden');
+      }
+    }
+
+    // --- MAIN NAVIGATION LOGIC ---
     function switchTab(tabName) {
       ['reports', 'entry', 'settings'].forEach(t => {
         document.getElementById(`tab-${t}`).classList.add('hidden');
@@ -382,14 +445,13 @@
       
       if(tabName === 'entry') setEntryDefaults();
       
-      // Bonus: Smooth scroll back to top when switching tabs
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function showAppView() {
       document.getElementById('landing-view').classList.add('hidden');
       document.getElementById('app-view').classList.remove('hidden');
-      document.getElementById('app-view').classList.add('flex'); // Add flex display
+      document.getElementById('app-view').classList.add('flex'); 
       
       document.getElementById('sheet-link').href = `https://docs.google.com/spreadsheets/d/${spreadsheetId}`;
       document.getElementById('current-sheet-id').innerText = spreadsheetId;
@@ -418,7 +480,7 @@
       window.location.reload();
     }
 
-    // --- CUSTOM DRIVE PICKER & WORKSPACE SWITCHING LOGIC ---
+    // --- CUSTOM DRIVE PICKER LOGIC ---
     async function openDrivePicker() {
       const modal = document.getElementById('drive-picker-modal');
       const list = document.getElementById('drive-file-list');
@@ -670,11 +732,17 @@
     function renderProjects() {
       const select = document.getElementById('project');
       const list = document.getElementById('project-list');
-      const currentSelection = select.value;
+      const filterSelect = document.getElementById('report-project-filter');
       
-      select.innerHTML = ''; list.innerHTML = '';
+      const currentSelection = select.value;
+      const currentFilterSelection = filterSelect.value;
+      
+      select.innerHTML = ''; list.innerHTML = ''; 
+      filterSelect.innerHTML = '<option value="ALL">All Projects (Total)</option>';
+
       projects.forEach((p, i) => {
         select.add(new Option(p, p));
+        filterSelect.add(new Option(p, p));
         list.innerHTML += `
           <li class="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-100">
             <span class="text-sm font-medium truncate flex-1">${p}</span>
@@ -684,7 +752,9 @@
             </div>
           </li>`;
       });
+      
       if (projects.includes(currentSelection)) select.value = currentSelection;
+      if (projects.includes(currentFilterSelection) || currentFilterSelection === 'ALL') filterSelect.value = currentFilterSelection;
     }
 
     async function addProject() {
@@ -855,6 +925,8 @@
       const btn = document.getElementById('btn-generate-report');
       const startStr = document.getElementById('report-start').value;
       const endStr = document.getElementById('report-end').value;
+      const selectedProjectFilter = document.getElementById('report-project-filter').value;
+      
       btn.innerText = "Fetching Data..."; btn.disabled = true;
 
       try {
@@ -875,16 +947,12 @@
         
         let allRows = [];
         if (data.valueRanges) {
-          // FIX: We loop through the returned tabs using the index
+          // Loop through the returned tabs using the index to guarantee accurate Project Name matching
           data.valueRanges.forEach((vr, index) => {
             if (vr.values) {
-              // We grab the precise, current Tab Name that this data came from
               const currentTabName = validProjects[index];
-              
               vr.values.forEach(row => {
-                // We overwrite the hardcoded, potentially stale project name in the sheet
-                // with the actual Tab name. This forces them to group perfectly.
-                row[1] = currentTabName;
+                row[1] = currentTabName; // Force the tab name as the definitive project name
                 allRows.push(row);
               });
             }
@@ -893,31 +961,100 @@
         
         let totalIncome = 0; let totalExpense = 0; let projectStats = {};
         let filteredRows = [];
+        let dailyNetObj = {}; // For the Graph
 
         allRows.forEach(row => {
           if (row[0] >= startStr && row[0] <= endStr) {
+            const projName = row[1] || "Unknown";
+            
+            // Filter out rows if a specific project is selected
+            if (selectedProjectFilter !== 'ALL' && projName !== selectedProjectFilter) return;
+
             filteredRows.push(row);
             
+            const date = row[0];
+            const type = row[2];
             const amount = parseFloat((row[3] || "0").replace(/[^0-9.-]+/g,"")) || 0;
-            const projName = row[1] || "Unknown"; // Now perfectly accurate based on the Tab!
             
             if (!projectStats[projName]) projectStats[projName] = { income: 0, expense: 0 };
+            if (!dailyNetObj[date]) dailyNetObj[date] = 0;
             
-            if (row[2] === "Income") { totalIncome += amount; projectStats[projName].income += amount; } 
-            else if (row[2] === "Expense") { totalExpense += amount; projectStats[projName].expense += amount; }
+            if (type === "Income") { 
+              totalIncome += amount; 
+              projectStats[projName].income += amount; 
+              dailyNetObj[date] += amount;
+            } 
+            else if (type === "Expense") { 
+              totalExpense += amount; 
+              projectStats[projName].expense += amount; 
+              dailyNetObj[date] -= amount;
+            }
           }
         });
 
+        // 1. UPDATE SUMMARY DATA
         const net = totalIncome - totalExpense;
         document.getElementById('rep-income').innerText = `$${totalIncome.toFixed(2)}`;
         document.getElementById('rep-expense').innerText = `$${totalExpense.toFixed(2)}`;
         document.getElementById('rep-net').innerText = `$${Math.abs(net).toFixed(2)}`;
-        document.getElementById('rep-net').className = `text-xl font-bold ${net >= 0 ? 'text-green-600' : 'text-red-600'}`;
+        document.getElementById('rep-net').className = `text-2xl font-bold ${net >= 0 ? 'text-green-600' : 'text-red-600'}`;
 
+        // 2. GENERATE GRAPH DATA
+        const sortedDates = Object.keys(dailyNetObj).sort();
+        const chartLabels = [];
+        const chartData = [];
+        
+        sortedDates.forEach(date => {
+           // Format Date for x-axis (e.g., '08-25')
+           const [y, m, d] = date.split('-');
+           chartLabels.push(`${m}/${d}`);
+           chartData.push(dailyNetObj[date]);
+        });
+
+        // Destroy previous chart if it exists to avoid overlapping canvases
+        if (profitChartInstance) {
+          profitChartInstance.destroy();
+        }
+
+        // Draw new Chart.js Line Graph
+        const ctx = document.getElementById('profitChart').getContext('2d');
+        profitChartInstance = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: chartLabels,
+            datasets: [{
+              label: 'Daily Net Profit',
+              data: chartData,
+              borderColor: '#1A4BAF',
+              backgroundColor: 'rgba(26, 75, 175, 0.1)',
+              borderWidth: 2,
+              pointRadius: 3,
+              fill: true,
+              tension: 0.3 // Adds a slight curve to the line
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { 
+                 ticks: { callback: function(value) { return '$' + value; }, font: { size: 10 } },
+                 grid: { color: '#f3f4f6' }
+              },
+              x: {
+                 ticks: { font: { size: 10 } },
+                 grid: { display: false }
+              }
+            }
+          }
+        });
+
+        // 3. PROJECT BREAKDOWN LIST
         const projList = document.getElementById('rep-projects');
         projList.innerHTML = '';
         if (Object.keys(projectStats).length === 0) {
-          projList.innerHTML = '<li class="p-4 text-gray-500 text-center italic">No transactions found for this period.</li>';
+          projList.innerHTML = '<li class="p-4 text-gray-500 text-center italic">No transactions found.</li>';
         } else {
           for (const [projName, stats] of Object.entries(projectStats)) {
             const pNet = stats.income - stats.expense;
@@ -932,12 +1069,13 @@
           }
         }
 
+        // 4. TRANSACTION HISTORY TAB
         const txList = document.getElementById('rep-transactions');
-        txList.innerHTML = '<h3 class="text-sm font-bold text-gray-600 uppercase tracking-wider mb-3">Transaction History</h3><div class="space-y-2" id="tx-items"></div>';
+        txList.innerHTML = '<div class="space-y-2" id="tx-items"></div>';
         const txItems = document.getElementById('tx-items');
 
         if (filteredRows.length === 0) {
-          txItems.innerHTML = '<p class="text-sm text-gray-500 italic">No transactions in this period.</p>';
+          txItems.innerHTML = '<p class="text-sm text-gray-500 italic text-center p-4">No transactions match your filters.</p>';
         } else {
           filteredRows.sort((a, b) => {
             const dateA = a[0] + ' ' + (a[5] || '00:00');
@@ -976,7 +1114,10 @@
           });
         }
 
+        // Show the results section and default back to the Summary tab
         document.getElementById('report-results').classList.remove('hidden');
+        switchReportTab('summary');
+        
       } catch (err) {
         alert("Report Error: " + err.message);
       }
