@@ -6,11 +6,11 @@
   <title>Financial Tracker</title>
   
   <!-- PWA Meta Tags -->
-  <link rel="manifest" href="/manifest.json">
+  <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#1A4BAF">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="apple-touch-icon" href="/icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -19,17 +19,17 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
+        navigator.serviceWorker.register('sw.js')
           .then(reg => console.log('Service Worker registered', reg))
           .catch(err => console.error('Service Worker registration failed', err));
       });
     }
   </script>
 </head>
-<body class="bg-gray-100 text-gray-900 font-sans m-0 p-0 sm:p-4 min-h-[100dvh] flex flex-col items-center sm:justify-center overflow-hidden sm:overflow-visible">
+<body class="bg-gray-100 text-gray-900 font-sans m-0 p-0 sm:p-4 h-[100dvh] w-full flex flex-col items-center sm:justify-center overflow-hidden">
 
   <!-- Global Install Banner -->
-  <div id="install-banner" class="hidden w-full max-w-md bg-[#1A4BAF] text-white px-4 py-3 flex justify-between items-center shadow-md z-50 transition-all sm:rounded-t-xl absolute top-0 sm:relative">
+  <div id="install-banner" class="hidden w-full max-w-md bg-[#1A4BAF] text-white px-4 py-3 flex justify-between items-center shadow-md z-50 shrink-0 sm:rounded-t-xl transition-all">
     <div class="flex items-center gap-3">
       <span class="text-xl">📲</span>
       <span class="text-sm font-medium">Install FinTrack for quick offline access</span>
@@ -40,7 +40,7 @@
   </div>
 
   <!-- Landing / Login View -->
-  <div id="landing-view" class="w-full max-w-md bg-white sm:rounded-xl shadow-sm sm:shadow-lg p-8 text-center flex flex-col justify-center h-[100dvh] sm:h-auto transition-all duration-300">
+  <div id="landing-view" class="w-full max-w-md bg-white sm:rounded-xl shadow-sm sm:shadow-lg p-8 text-center flex flex-col justify-center flex-1 sm:flex-none min-h-0 sm:h-auto transition-all duration-300">
     <div class="w-16 h-16 bg-blue-50 text-[#1A4BAF] rounded-full flex items-center justify-center mx-auto mb-6">
       <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
     </div>
@@ -53,15 +53,17 @@
   </div>
 
   <!-- Main App View -->
-  <div id="app-view" class="w-full max-w-md bg-white sm:rounded-xl shadow-sm sm:shadow-lg hidden flex-col h-[100dvh] sm:h-[800px] relative overflow-hidden">
+  <!-- Set to strictly fill available height (flex-1 min-h-0) without pushing past the screen bounds -->
+  <div id="app-view" class="w-full max-w-md bg-white sm:rounded-xl shadow-sm sm:shadow-lg hidden flex-col flex-1 min-h-0 sm:max-h-[800px] overflow-hidden">
     
-    <!-- Top Header (Title Only) -->
+    <!-- Top Header -->
     <div class="flex items-center justify-center border-b border-gray-100 bg-white p-4 shrink-0 shadow-sm z-10 pt-[env(safe-area-inset-top)]">
       <h2 class="text-lg font-bold text-gray-800">Financial Tracker</h2>
     </div>
 
-    <!-- Scrollable Content Area (With deep padding at bottom to clear the nav bar) -->
-    <div class="flex-1 overflow-y-auto p-6 pb-28 bg-gray-50 relative">
+    <!-- Scrollable Content Area -->
+    <!-- min-h-0 forces the flexbox to let this container scroll natively -->
+    <div class="flex-1 overflow-y-auto min-h-0 p-6 bg-gray-50">
 
       <!-- ================== TAB: REPORTS ================== -->
       <div id="tab-reports" class="hidden space-y-6">
@@ -203,8 +205,8 @@
     </div>
 
     <!-- ================== BOTTOM ICON NAVIGATION ================== -->
-    <!-- Absolutely positioned to stay pinned directly to the bottom of the screen regardless of content height -->
-    <div class="absolute bottom-0 left-0 w-full flex border-t border-gray-200 bg-white shrink-0 shadow-[0_-4px_15px_rgba(0,0,0,0.03)] z-50 pb-[env(safe-area-inset-bottom)]">
+    <!-- In-flow element. shrink-0 stops it from crushing, keeping it natively attached to the bottom. -->
+    <div class="flex border-t border-gray-200 bg-white shrink-0 shadow-[0_-4px_15px_rgba(0,0,0,0.03)] z-10 pb-[env(safe-area-inset-bottom)]">
       <button onclick="switchTab('reports')" id="nav-reports" class="flex-1 py-3 text-xs font-medium text-gray-400 flex flex-col items-center justify-center transition-colors">
         <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
         Reports
@@ -230,7 +232,7 @@
         </button>
       </div>
       <p class="text-xs text-gray-500 mb-4 shrink-0">Select the master spreadsheet you want this device to sync with.</p>
-      <div class="flex-1 overflow-y-auto mb-4 border border-gray-100 rounded-lg bg-gray-50 p-2">
+      <div class="flex-1 overflow-y-auto mb-4 border border-gray-100 rounded-lg bg-gray-50 p-2 min-h-0">
         <ul id="drive-file-list" class="space-y-2"></ul>
         <div id="drive-picker-loading" class="text-center py-6 hidden">
           <p class="text-sm text-gray-500">Searching your Google Drive...</p>
