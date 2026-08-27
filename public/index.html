@@ -205,7 +205,7 @@
             <select id="project" required class="w-full border-gray-300 border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-[#009EFF] outline-none bg-white shadow-sm"></select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Amount ($)</label>
+            <label id="amount-label" class="block text-sm font-medium text-gray-700 mb-1">Amount ($)</label>
             <input type="number" id="amount" step="0.01" required class="w-full border-gray-300 border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-[#009EFF] outline-none shadow-sm" placeholder="0.00">
           </div>
           <div>
@@ -260,6 +260,25 @@
           <ul id="project-list" class="space-y-2"></ul>
         </div>
         
+        <!-- SECTION 3: App Preferences -->
+        <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
+          <h3 class="text-lg font-bold mb-4 text-gray-800">Preferences</h3>
+          <div>
+            <label class="block text-xs font-medium text-gray-500 mb-2">Currency Symbol</label>
+            <select id="currency-selector" onchange="changeCurrency(this.value)" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#009EFF] bg-white shadow-sm">
+              <option value="$">USD ($)</option>
+              <option value="E£">EGP (E£)</option>
+              <option value="€">EUR (€)</option>
+              <option value="£">GBP (£)</option>
+              <option value="د.إ">AED (د.إ)</option>
+              <option value="﷼">SAR (﷼)</option>
+              <option value="¥">JPY/CNY (¥)</option>
+              <option value="₹">INR (₹)</option>
+              <option value="">None</option>
+            </select>
+          </div>
+        </div>
+
         <!-- App Install Button (PWA) -->
         <button id="install-app-btn" class="hidden w-full bg-blue-50 hover:bg-blue-100 text-[#1A4BAF] font-medium py-2.5 rounded-lg transition-colors text-sm border border-blue-200 mt-4 disabled:opacity-70">
           📲 Install App to Home Screen
@@ -318,6 +337,7 @@
     let tokenClient;
     let accessToken = null;
     let spreadsheetId = localStorage.getItem('financial_tracker_sheet_id') || null;
+    let currentCurrency = localStorage.getItem('tracker_currency') || '$';
     
     let projects = JSON.parse(localStorage.getItem('tracker_projects')) || ["General"];
     let offlineQueue = JSON.parse(localStorage.getItem('tracker_offline_queue')) || [];
@@ -404,6 +424,20 @@
       });
     }
 
+    function changeCurrency(symbol) {
+      currentCurrency = symbol;
+      localStorage.setItem('tracker_currency', symbol);
+      document.getElementById('amount-label').innerText = symbol ? `Amount (${symbol})` : 'Amount';
+      
+      if (currentReportBaseData && currentReportBaseData.length > 0) {
+        renderFilteredReport();
+      } else {
+        document.getElementById('rep-income').innerText = `${symbol}0.00`;
+        document.getElementById('rep-expense').innerText = `${symbol}0.00`;
+        document.getElementById('rep-net').innerText = `${symbol}0.00`;
+      }
+    }
+
     let deferredPrompt = null;
     const installBtn = document.getElementById('install-app-btn');
     const banner = document.getElementById('install-banner');
@@ -480,6 +514,9 @@
       document.getElementById('report-start').value = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
       document.getElementById('report-end').value = today.toISOString().split('T')[0];
       
+      document.getElementById('currency-selector').value = currentCurrency;
+      changeCurrency(currentCurrency);
+
       setEntryDefaults();
       renderProjects();
       
@@ -654,8 +691,6 @@
       if (!sheetName || sheetName.trim() === "") return; 
 
       const btn = document.getElementById('btn-create-new');
-      const originalText = btn.innerText;
-      btn.innerHTML = `<svg class="animate-spin h-5 w-5 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
       btn.disabled = true;
 
       try {
@@ -674,7 +709,6 @@
         showToast("Failed to create new tracker database.", true);
       }
       
-      btn.innerHTML = originalText;
       btn.disabled = false;
     }
 
@@ -1153,9 +1187,9 @@
       });
 
       const net = totalIncome - totalExpense;
-      document.getElementById('rep-income').innerText = `$${totalIncome.toFixed(2)}`;
-      document.getElementById('rep-expense').innerText = `$${totalExpense.toFixed(2)}`;
-      document.getElementById('rep-net').innerText = `$${Math.abs(net).toFixed(2)}`;
+      document.getElementById('rep-income').innerText = `${currentCurrency}${totalIncome.toFixed(2)}`;
+      document.getElementById('rep-expense').innerText = `${currentCurrency}${totalExpense.toFixed(2)}`;
+      document.getElementById('rep-net').innerText = `${currentCurrency}${Math.abs(net).toFixed(2)}`;
       document.getElementById('rep-net').className = `text-2xl font-bold ${net >= 0 ? 'text-green-600' : 'text-red-600'}`;
 
       const sortedDates = Object.keys(dailyNetObj).sort();
@@ -1194,7 +1228,7 @@
           plugins: { legend: { display: false } },
           scales: {
             y: { 
-               ticks: { callback: function(value) { return '$' + value; }, font: { size: 10 } },
+               ticks: { callback: function(value) { return currentCurrency + value; }, font: { size: 10 } },
                grid: { color: '#f3f4f6' }
             },
             x: {
@@ -1216,9 +1250,9 @@
             <li class="px-4 py-3 flex justify-between items-center">
               <div>
                 <p class="font-bold text-gray-800">${projName}</p>
-                <p class="text-xs text-gray-500">In: $${stats.income.toFixed(2)} | Out: $${stats.expense.toFixed(2)}</p>
+                <p class="text-xs text-gray-500">In: ${currentCurrency}${stats.income.toFixed(2)} | Out: ${currentCurrency}${stats.expense.toFixed(2)}</p>
               </div>
-              <span class="font-bold ${pNet >= 0 ? 'text-green-600' : 'text-red-600'}">${pNet >= 0 ? '+' : '-'}$${Math.abs(pNet).toFixed(2)}</span>
+              <span class="font-bold ${pNet >= 0 ? 'text-green-600' : 'text-red-600'}">${pNet >= 0 ? '+' : '-'}${currentCurrency}${Math.abs(pNet).toFixed(2)}</span>
             </li>`;
         }
       }
@@ -1245,7 +1279,7 @@
           const time = row[5] || "";
           
           const isIncome = type === "Income";
-          const amountStr = (isIncome ? '+' : '-') + '$' + Math.abs(amount).toFixed(2);
+          const amountStr = (isIncome ? '+' : '-') + currentCurrency + Math.abs(amount).toFixed(2);
           
           let timeFormatted = time;
           if (time) {
