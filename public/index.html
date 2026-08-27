@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
-  <title>Financial Tracker</title>
+  <title>Gelemy</title>
   
   <!-- PWA Meta Tags -->
   <link rel="manifest" href="/manifest.json">
@@ -67,7 +67,7 @@
   <div id="install-banner" class="hidden fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-[#1A4BAF] text-white px-4 py-3 flex justify-between items-center shadow-lg z-50 transition-all pt-[max(0.75rem,env(safe-area-inset-top))]">
     <div class="flex items-center gap-3">
       <span class="text-xl">📲</span>
-      <span class="text-xs sm:text-sm font-medium leading-tight">Install FinTrack for quick offline access</span>
+      <span class="text-xs sm:text-sm font-medium leading-tight">Install Gelemy for quick offline access</span>
     </div>
     <div class="flex items-center gap-2 shrink-0">
       <button id="banner-install-btn" class="bg-white text-[#1A4BAF] px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm hover:bg-gray-100 transition-colors">
@@ -86,7 +86,7 @@
     <div class="w-16 h-16 bg-blue-50 text-[#1A4BAF] rounded-full flex items-center justify-center mx-auto mb-6">
       <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
     </div>
-    <h1 class="text-2xl font-bold mb-2">Financial Tracker</h1>
+    <h1 class="text-2xl font-bold mb-2">Gelemy</h1>
     <p class="text-gray-500 mb-8">Log daily project income and expenses directly into a secure Google Sheet.</p>
     
     <button id="auth-btn" class="w-full bg-[#1A4BAF] hover:bg-[#009EFF] text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
@@ -97,8 +97,8 @@
   <!-- Main App View -->
   <div id="app-view" class="hidden w-full max-w-md bg-white min-h-screen shadow-2xl sm:border-x sm:border-gray-200 flex-col relative">
     
-    <header class="sticky top-0 bg-white/95 backdrop-blur-md border-b border-gray-100 p-4 z-40 pt-[max(1rem,env(safe-area-inset-top))]">
-      <h2 class="text-lg font-bold text-gray-800 text-center">Financial Tracker</h2>
+    <header class="sticky top-0 bg-[#1A4BAF] shadow-md p-4 z-40 pt-[max(1rem,env(safe-area-inset-top))]">
+      <h2 class="text-lg font-bold text-white text-center">Gelemy</h2>
     </header>
 
     <main class="flex-1 p-6 pb-32 bg-gray-50 z-10 min-h-screen">
@@ -116,7 +116,7 @@
               <input type="date" id="report-end" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#009EFF] bg-white shadow-sm">
             </div>
           </div>
-          <button onclick="fetchAndGenerateReport()" id="btn-generate-report" class="w-full bg-gray-800 hover:bg-gray-900 text-white font-medium py-3 rounded-lg transition-colors text-sm shadow-md">
+          <button onclick="fetchAndGenerateReport()" id="btn-generate-report" class="w-full bg-[#1A4BAF] hover:bg-[#009EFF] text-white font-medium py-3 rounded-lg transition-colors text-sm shadow-md disabled:opacity-70">
             Generate Report
           </button>
         </div>
@@ -176,14 +176,16 @@
             <label class="cursor-pointer">
               <input type="radio" name="tx_type" value="Income" class="peer sr-only" required>
               <div class="rounded-xl border-2 border-transparent bg-white p-4 flex flex-col items-center justify-center gap-2 transition-all peer-checked:border-green-500 peer-checked:bg-green-50 peer-checked:text-green-700 text-gray-400 shadow-sm hover:shadow">
-                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                <!-- IN Arrow (Down Left) -->
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 5L5 19m0 0V9m0 10h10"></path></svg>
                 <span class="font-medium">Income</span>
               </div>
             </label>
             <label class="cursor-pointer">
               <input type="radio" name="tx_type" value="Expense" class="peer sr-only">
               <div class="rounded-xl border-2 border-transparent bg-white p-4 flex flex-col items-center justify-center gap-2 transition-all peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:text-red-700 text-gray-400 shadow-sm hover:shadow">
-                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg>
+                <!-- OUT Arrow (Up Right) -->
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19L19 5m0 0v10m0-10H9"></path></svg>
                 <span class="font-medium">Expense</span>
               </div>
             </label>
@@ -225,7 +227,6 @@
         <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm space-y-4">
           <div class="flex justify-between items-center mb-1">
             <h3 class="text-lg font-bold text-gray-800">Database</h3>
-            <!-- Plus Icon for Create New (No text) -->
             <button onclick="createNewTrackerManually()" id="btn-create-new" class="text-[#1A4BAF] hover:bg-blue-50 p-1.5 rounded-full transition-colors disabled:opacity-50" title="Create New Database">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
             </button>
@@ -256,7 +257,6 @@
             <input type="text" id="new-project-name" placeholder="New project..." oninput="toggleAddProjectBtn()" class="flex-1 border-gray-300 border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#009EFF]">
             <button onclick="addProject()" id="add-proj-btn" disabled class="bg-[#1A4BAF] text-white px-4 py-2 rounded-lg font-medium transition text-sm disabled:opacity-50 disabled:cursor-not-allowed">Add</button>
           </div>
-          <!-- Removed max-h/overflow to ditch scrolling within scrolling -->
           <ul id="project-list" class="space-y-2"></ul>
         </div>
         
@@ -285,7 +285,7 @@
         </button>
         <p id="ios-install-hint" class="hidden text-xs text-gray-500 text-center mt-2">To install on iOS: tap the <strong>Share</strong> button at the bottom of Safari, then select <strong>Add to Home Screen</strong>.</p>
 
-        <!-- Disconnect Button at bottom as simple text link -->
+        <!-- Disconnect Button -->
         <div class="pt-6 pb-4 text-center">
           <button onclick="logout()" class="text-red-500 hover:text-red-700 text-sm font-medium transition-colors underline decoration-transparent hover:decoration-red-700 underline-offset-4">
             Disconnect Google Account
@@ -309,25 +309,6 @@
         Settings
       </button>
     </nav>
-  </div>
-
-  <!-- Custom Google Drive Picker Modal -->
-  <div id="drive-picker-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[60] p-4 backdrop-blur-sm">
-    <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 relative flex flex-col max-h-[80vh]">
-      <div class="flex justify-between items-center mb-4 shrink-0">
-        <h3 class="text-lg font-bold text-gray-800">Switch Database</h3>
-        <button onclick="closeDrivePicker()" class="text-gray-400 hover:text-gray-600">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-        </button>
-      </div>
-      <p class="text-xs text-gray-500 mb-4 shrink-0">Select the master spreadsheet you want this device to sync with.</p>
-      <div class="flex-1 overflow-y-auto mb-4 border border-gray-100 rounded-lg bg-gray-50 p-2">
-        <ul id="drive-file-list" class="space-y-2"></ul>
-        <div id="drive-picker-loading" class="text-center py-6 hidden">
-          <p class="text-sm text-gray-500">Searching your Google Drive...</p>
-        </div>
-      </div>
-    </div>
   </div>
 
   <script>
@@ -604,7 +585,7 @@
 
     async function fetchSheetDetails() {
       if (!navigator.onLine || !accessToken || !spreadsheetId) {
-        document.getElementById('current-sheet-name').innerText = "Daily Financial Tracker (Offline)";
+        document.getElementById('current-sheet-name').innerText = "Gelemy Tracker (Offline)";
         return;
       }
       try {
@@ -614,7 +595,7 @@
         const data = await response.json();
         document.getElementById('current-sheet-name').innerText = data.properties?.title || "Unknown Sheet";
       } catch (err) {
-        document.getElementById('current-sheet-name').innerText = "Daily Financial Tracker";
+        document.getElementById('current-sheet-name').innerText = "Gelemy Tracker";
       }
     }
 
@@ -687,7 +668,7 @@
     }
 
     async function createNewTrackerManually() {
-      const sheetName = await showPrompt("New Database", "Enter a name for your new tracker database:", "Daily Financial Tracker");
+      const sheetName = await showPrompt("New Database", "Enter a name for your new tracker database:", "Gelemy Tracker");
       if (!sheetName || sheetName.trim() === "") return; 
 
       const btn = document.getElementById('btn-create-new');
@@ -748,7 +729,7 @@
           }
         }
 
-        const sheetQuery = encodeURIComponent("name='Daily Financial Tracker' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false");
+        const sheetQuery = encodeURIComponent("name='Gelemy Tracker' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false");
         const oldSheetRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${sheetQuery}&spaces=drive&fields=files(id)&orderBy=createdTime%20asc`, {
           headers: { "Authorization": `Bearer ${accessToken}` }
         });
@@ -803,7 +784,7 @@
       }
     }
 
-    async function createMasterSheet(sheetTitle = "Daily Financial Tracker") {
+    async function createMasterSheet(sheetTitle = "Gelemy Tracker") {
       const defaultProjects = ["General", "CNC Furniture Design", "Frappe SaaS", "Shopify Stores"];
       
       const projectSheets = defaultProjects.map(p => ({
