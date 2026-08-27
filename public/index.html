@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
   <title>Financial Tracker</title>
   
-  <!-- PWA Meta Tags -->
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#1A4BAF">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,7 +15,6 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
-  <!-- Register Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -30,8 +28,6 @@
 
 <body class="bg-gray-100 text-gray-900 font-sans m-0 p-0 flex justify-center min-h-screen">
 
-  <!-- ================== CUSTOM UI NOTIFICATIONS & MODALS ================== -->
-  
   <!-- Toast Notification System -->
   <div id="toast-notification" class="fixed top-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-5 py-3 rounded-xl shadow-2xl z-[70] hidden transition-opacity flex items-center gap-3 w-[90%] max-w-sm">
     <span id="toast-icon" class="text-lg">✅</span>
@@ -78,8 +74,6 @@
       </button>
     </div>
   </div>
-
-  <!-- ================== APP VIEWS ================== -->
 
   <!-- Landing / Login View -->
   <div id="landing-view" class="w-full max-w-md bg-white min-h-screen shadow-2xl sm:border-x sm:border-gray-200 p-8 flex flex-col justify-center transition-all duration-300">
@@ -299,7 +293,6 @@
   </div>
 
   <script>
-    // --- CONFIGURATION ---
     const CLIENT_ID = "989585036388-a9gvr4po1ol1c4urh25iegcc0cirtc06.apps.googleusercontent.com"; 
     const SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.appdata"; 
     
@@ -310,7 +303,6 @@
     let projects = JSON.parse(localStorage.getItem('tracker_projects')) || ["General"];
     let offlineQueue = JSON.parse(localStorage.getItem('tracker_offline_queue')) || [];
     
-    // --- REPORTING STATE VARIABLES ---
     let profitChartInstance = null;
     let currentReportBaseData = []; 
     let activeProjectFilters = new Set(); 
@@ -393,7 +385,6 @@
       });
     }
 
-    // --- PWA INSTALL PROMPT LOGIC ---
     let deferredPrompt = null;
     const installBtn = document.getElementById('install-app-btn');
     const banner = document.getElementById('install-banner');
@@ -503,7 +494,6 @@
       }
     }
 
-    // --- REPORT SUB-TAB SWITCHING ---
     function switchReportTab(tab) {
       const summaryBtn = document.getElementById('subnav-summary');
       const transBtn = document.getElementById('subnav-transactions');
@@ -523,7 +513,6 @@
       }
     }
 
-    // --- MAIN NAVIGATION LOGIC ---
     function switchTab(tabName) {
       ['reports', 'entry', 'settings'].forEach(t => {
         document.getElementById(`tab-${t}`).classList.add('hidden');
@@ -574,7 +563,6 @@
       window.location.reload();
     }
 
-    // --- CUSTOM DRIVE PICKER LOGIC ---
     async function openDrivePicker() {
       if (!accessToken) {
          return showToast("Session expired. Please log out and reconnect Google Account.", true);
@@ -613,7 +601,7 @@
               </li>`;
           });
         } else {
-          list.innerHTML = '<li class="text-sm text-gray-500 text-center py-4">No spreadsheets found. (Note: Only databases created via this app will appear here).</li>';
+          list.innerHTML = '<li class="text-sm text-gray-500 text-center py-4">No spreadsheets found.</li>';
         }
       } catch (err) {
         loader.classList.add('hidden');
@@ -666,7 +654,6 @@
       btn.disabled = false;
     }
 
-    // --- INITIALIZATION & SYNC LOGIC ---
     async function initializeDatabase() {
       const btn = document.getElementById('auth-btn');
       btn.innerText = "Syncing with Google Drive...";
@@ -764,9 +751,12 @@
       const projectSheets = defaultProjects.map(p => ({
         properties: { title: p },
         data: [{ startRow: 0, startColumn: 0, rowData: [{ values: [
-          { userEnteredValue: { stringValue: "Date" } }, { userEnteredValue: { stringValue: "Project" } },
-          { userEnteredValue: { stringValue: "Type" } }, { userEnteredValue: { stringValue: "Amount" } },
-          { userEnteredValue: { stringValue: "Notes" } }, { userEnteredValue: { stringValue: "Time" } }
+          // REMOVED 'Project' Column
+          { userEnteredValue: { stringValue: "Date" } },
+          { userEnteredValue: { stringValue: "Type" } }, 
+          { userEnteredValue: { stringValue: "Amount" } },
+          { userEnteredValue: { stringValue: "Notes" } }, 
+          { userEnteredValue: { stringValue: "Time" } }
         ]}]}]
       }));
 
@@ -861,9 +851,10 @@
             body: JSON.stringify({ requests: [{ addSheet: { properties: { title: val } } }] })
           });
           
-          await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'${val}'!A1:F1?valueInputOption=USER_ENTERED`, {
+          // Appending exactly 5 columns now
+          await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'${val}'!A1:E1?valueInputOption=USER_ENTERED`, {
             method: "PUT", headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ values: [["Date", "Project", "Type", "Amount", "Notes", "Time"]] })
+            body: JSON.stringify({ values: [["Date", "Type", "Amount", "Notes", "Time"]] })
           });
 
           projects.push(val);
@@ -936,18 +927,27 @@
       }
     }
 
-    // --- TRANSACTION LOGIC ---
     async function syncOfflineQueue() {
       if (offlineQueue.length === 0 || !navigator.onLine || !accessToken || !spreadsheetId) return;
 
       while (offlineQueue.length > 0) {
-        const row = offlineQueue[0];
-        const targetTab = row[1]; 
+        const item = offlineQueue[0];
+        let targetTab, rowData;
+
+        // Backward compatibility for old cached arrays
+        if (Array.isArray(item)) {
+          targetTab = item[1];
+          rowData = [item[0], item[2], item[3], item[4], item[5]]; // Map 6 columns to 5
+        } else {
+          targetTab = item.tab;
+          rowData = item.data;
+        }
         
         try {
-          const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'${targetTab}'!A:F:append?valueInputOption=USER_ENTERED`, {
+          // Range is strictly A:E now
+          const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'${targetTab}'!A:E:append?valueInputOption=USER_ENTERED`, {
             method: "POST", headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ values: [row] }),
+            body: JSON.stringify({ values: [rowData] }),
           });
           if (response.ok) {
             offlineQueue.shift(); localStorage.setItem('tracker_offline_queue', JSON.stringify(offlineQueue));
@@ -961,8 +961,8 @@
       }
     }
 
-    function queueLocally(row) {
-      offlineQueue.push(row);
+    function queueLocally(targetTab, row) {
+      offlineQueue.push({ tab: targetTab, data: row });
       localStorage.setItem('tracker_offline_queue', JSON.stringify(offlineQueue));
       showToast("Saved offline. Will sync when connected.");
     }
@@ -975,9 +975,9 @@
       const targetTab = document.getElementById('project').value;
       const typeStr = document.querySelector('input[name="tx_type"]:checked').value;
       
+      // Removed Project Name from the row entirely. It is now length 5.
       const row = [
         document.getElementById('entry-date').value, 
-        targetTab,
         typeStr, 
         parseFloat(document.getElementById('amount').value), 
         document.getElementById('notes').value,
@@ -985,10 +985,10 @@
       ];
 
       if (!navigator.onLine) {
-        queueLocally(row);
+        queueLocally(targetTab, row);
       } else {
         try {
-          const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'${targetTab}'!A:F:append?valueInputOption=USER_ENTERED`, {
+          const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/'${targetTab}'!A:E:append?valueInputOption=USER_ENTERED`, {
             method: "POST", headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
             body: JSON.stringify({ values: [row] }),
           });
@@ -996,7 +996,7 @@
             showToast("Entry logged successfully!");
           } else throw new Error("API Error"); 
         } catch (err) {
-          queueLocally(row);
+          queueLocally(targetTab, row);
         }
       }
       document.getElementById('entry-form').reset();
@@ -1004,7 +1004,6 @@
       submitBtn.disabled = false; submitBtn.innerText = "Log Transaction";
     }
 
-    // --- REFACTORED REPORTING LOGIC WITH CHIP FILTERS ---
     async function fetchAndGenerateReport() {
       if (!navigator.onLine) return showToast("You must be online to generate a report.", true);
       
@@ -1023,7 +1022,8 @@
           throw new Error("No project tabs found in spreadsheet.");
         }
 
-        const rangesQuery = validProjects.map(p => `ranges=${encodeURIComponent(`'${p}'!A2:F`)}`).join('&');
+        // Fetching range strictly up to Column E
+        const rangesQuery = validProjects.map(p => `ranges=${encodeURIComponent(`'${p}'!A2:E`)}`).join('&');
         const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchGet?${rangesQuery}`, {
           headers: { "Authorization": `Bearer ${accessToken}` }
         });
@@ -1037,7 +1037,9 @@
             if (vr.values) {
               const currentTabName = validProjects[index];
               vr.values.forEach(row => {
-                row[1] = currentTabName; 
+                // To keep filtering and charting exactly the same, we inject the Tab Name 
+                // back into the array at Index 1 locally in memory.
+                row.splice(1, 0, currentTabName); 
                 
                 if (row[0] >= startStr && row[0] <= endStr) {
                   currentReportBaseData.push(row);
