@@ -94,6 +94,30 @@
     </button>
   </div>
 
+  <!-- Onboarding View (Shown only if no DB exists) -->
+  <div id="onboarding-view" class="hidden w-full max-w-md bg-white min-h-screen shadow-2xl sm:border-x sm:border-gray-200 p-8 flex-col justify-center transition-all duration-300">
+    <div class="w-12 h-12 bg-blue-50 text-[#1A4BAF] rounded-full flex items-center justify-center mb-5">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+    </div>
+    <h2 class="text-2xl font-bold mb-2">Welcome to Gelemy</h2>
+    <p class="text-gray-500 mb-6 text-sm">Let's set up your master database in Google Sheets.</p>
+    
+    <div class="space-y-5">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Database Name</label>
+        <input type="text" id="onboard-db-name" value="Gelemy Tracker" class="w-full border-gray-300 border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-[#009EFF] outline-none shadow-sm text-sm">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Initial Projects</label>
+        <p class="text-xs text-gray-400 mb-2">Enter your projects or categories, separated by commas.</p>
+        <textarea id="onboard-projects" rows="3" class="w-full border-gray-300 border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-[#009EFF] outline-none shadow-sm text-sm" placeholder="e.g., General, Upwork, Personal..."></textarea>
+      </div>
+      <button onclick="submitOnboarding()" id="btn-onboard-submit" class="w-full bg-[#1A4BAF] hover:bg-[#009EFF] text-white font-medium py-3 px-4 rounded-lg transition-colors mt-2 shadow-md">
+        Create Database
+      </button>
+    </div>
+  </div>
+
   <!-- Main App View -->
   <div id="app-view" class="hidden w-full max-w-md bg-white min-h-screen shadow-2xl sm:border-x sm:border-gray-200 flex-col relative">
     
@@ -176,7 +200,7 @@
             <label class="cursor-pointer">
               <input type="radio" name="tx_type" value="Income" class="peer sr-only" required>
               <div class="rounded-xl border-2 border-transparent bg-white p-4 flex flex-col items-center justify-center gap-2 transition-all peer-checked:border-green-500 peer-checked:bg-green-50 peer-checked:text-green-700 text-gray-400 shadow-sm hover:shadow">
-                <!-- IN Arrow (Down Left) -->
+                <!-- IN Arrow -->
                 <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 5L5 19m0 0V9m0 10h10"></path></svg>
                 <span class="font-medium">Income</span>
               </div>
@@ -184,7 +208,7 @@
             <label class="cursor-pointer">
               <input type="radio" name="tx_type" value="Expense" class="peer sr-only">
               <div class="rounded-xl border-2 border-transparent bg-white p-4 flex flex-col items-center justify-center gap-2 transition-all peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:text-red-700 text-gray-400 shadow-sm hover:shadow">
-                <!-- OUT Arrow (Up Right) -->
+                <!-- OUT Arrow -->
                 <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19L19 5m0 0v10m0-10H9"></path></svg>
                 <span class="font-medium">Expense</span>
               </div>
@@ -211,8 +235,9 @@
             <input type="number" id="amount" step="0.01" required class="w-full border-gray-300 border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-[#009EFF] outline-none shadow-sm" placeholder="0.00">
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Notes / Description</label>
-            <input type="text" id="notes" required class="w-full border-gray-300 border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-[#009EFF] outline-none shadow-sm" placeholder="e.g., Software license">
+            <!-- Notes field is now OPTIONAL (no 'required' attribute) -->
+            <label class="block text-sm font-medium text-gray-700 mb-1">Notes / Description <span class="text-xs text-gray-400 font-normal">(Optional)</span></label>
+            <input type="text" id="notes" class="w-full border-gray-300 border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-[#009EFF] outline-none shadow-sm" placeholder="e.g., Software license">
           </div>
           <button type="submit" id="submit-btn" class="w-full bg-[#1A4BAF] hover:bg-[#009EFF] text-white font-medium py-3 px-4 rounded-lg transition-colors mt-4 shadow-md disabled:opacity-70">
             Log Transaction
@@ -309,6 +334,25 @@
         Settings
       </button>
     </nav>
+  </div>
+
+  <!-- Custom Google Drive Picker Modal -->
+  <div id="drive-picker-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[60] p-4 backdrop-blur-sm">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 relative flex flex-col max-h-[80vh]">
+      <div class="flex justify-between items-center mb-4 shrink-0">
+        <h3 class="text-lg font-bold text-gray-800">Switch Database</h3>
+        <button onclick="closeDrivePicker()" class="text-gray-400 hover:text-gray-600">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+      <p class="text-xs text-gray-500 mb-4 shrink-0">Select the master spreadsheet you want this device to sync with.</p>
+      <div class="flex-1 overflow-y-auto mb-4 border border-gray-100 rounded-lg bg-gray-50 p-2">
+        <ul id="drive-file-list" class="space-y-2"></ul>
+        <div id="drive-picker-loading" class="text-center py-6 hidden">
+          <p class="text-sm text-gray-500">Searching your Google Drive...</p>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -575,6 +619,9 @@
 
     function showAppView() {
       document.getElementById('landing-view').classList.add('hidden');
+      document.getElementById('onboarding-view').classList.add('hidden');
+      document.getElementById('onboarding-view').classList.remove('flex');
+      
       document.getElementById('app-view').classList.remove('hidden');
       document.getElementById('app-view').classList.add('flex'); 
       
@@ -667,6 +714,7 @@
       showToast("Database switched successfully!");
     }
 
+    // Called from Settings to create a new DB
     async function createNewTrackerManually() {
       const sheetName = await showPrompt("New Database", "Enter a name for your new tracker database:", "Gelemy Tracker");
       if (!sheetName || sheetName.trim() === "") return; 
@@ -675,7 +723,9 @@
       btn.disabled = true;
 
       try {
-        await createMasterSheet(sheetName); 
+        // Use existing projects array so they carry over to the new DB
+        const projsToCarryOver = projects.length > 0 ? projects : ["General"];
+        await createMasterSheet(sheetName, projsToCarryOver); 
         await saveConfigToCloud(spreadsheetId);
         localStorage.setItem("financial_tracker_sheet_id", spreadsheetId);
         
@@ -691,6 +741,39 @@
       }
       
       btn.disabled = false;
+    }
+
+    // Called from Initial Onboarding View
+    async function submitOnboarding() {
+      const dbNameInput = document.getElementById('onboard-db-name').value.trim();
+      const dbName = dbNameInput ? dbNameInput : 'Gelemy Tracker';
+      
+      const projRaw = document.getElementById('onboard-projects').value;
+      let projArray = projRaw.split(',')
+                             .map(p => p.trim().replace(/['"\/\\?*[\]]/g, ''))
+                             .filter(p => p.length > 0);
+      
+      if (projArray.length === 0) projArray = ["General"];
+
+      const btn = document.getElementById('btn-onboard-submit');
+      btn.disabled = true;
+      btn.innerText = "Creating Database...";
+
+      try {
+        await createMasterSheet(dbName, projArray);
+        await saveConfigToCloud(spreadsheetId);
+        localStorage.setItem("financial_tracker_sheet_id", spreadsheetId);
+        
+        updateProjectCache();
+        
+        showAppView();
+        syncOfflineQueue();
+        showToast("Welcome! Your database is ready.");
+      } catch (err) {
+        showToast("Failed to create database.", true);
+        btn.disabled = false;
+        btn.innerText = "Create Database";
+      }
     }
 
     async function initializeDatabase() {
@@ -737,15 +820,21 @@
 
         if (oldSheetData.files && oldSheetData.files.length > 0) {
           spreadsheetId = oldSheetData.files[0].id; 
+          await saveConfigToCloud(spreadsheetId);
+          localStorage.setItem("financial_tracker_sheet_id", spreadsheetId);
+          await fetchProjects();
+          showAppView();
+          syncOfflineQueue();
         } else {
-          await createMasterSheet();
+          // NO SHEET FOUND -> SHOW ONBOARDING
+          document.getElementById('landing-view').classList.add('hidden');
+          document.getElementById('onboarding-view').classList.remove('hidden');
+          document.getElementById('onboarding-view').classList.add('flex');
+          
+          // Reset landing button just in case user refreshes
+          btn.innerText = "Connect Google Account";
+          btn.disabled = false;
         }
-
-        await saveConfigToCloud(spreadsheetId);
-        localStorage.setItem("financial_tracker_sheet_id", spreadsheetId);
-        await fetchProjects();
-        showAppView();
-        syncOfflineQueue();
 
       } catch (err) {
         localStorage.removeItem('tracker_auth_token');
@@ -784,10 +873,9 @@
       }
     }
 
-    async function createMasterSheet(sheetTitle = "Gelemy Tracker") {
-      const defaultProjects = ["General", "CNC Furniture Design", "Frappe SaaS", "Shopify Stores"];
-      
-      const projectSheets = defaultProjects.map(p => ({
+    // Now accepts dynamic project array
+    async function createMasterSheet(sheetTitle = "Gelemy Tracker", customProjects = ["General"]) {
+      const projectSheets = customProjects.map(p => ({
         properties: { title: p },
         data: [{ startRow: 0, startColumn: 0, rowData: [{ values: [
           { userEnteredValue: { stringValue: "Date" } },
@@ -800,7 +888,7 @@
 
       projectSheets.push({
         properties: { title: "Settings" },
-        data: [{ startRow: 0, startColumn: 0, rowData: defaultProjects.map(p => ({
+        data: [{ startRow: 0, startColumn: 0, rowData: customProjects.map(p => ({
           values: [{ userEnteredValue: { stringValue: p } }]
         }))}]
       });
@@ -811,7 +899,7 @@
       });
       const data = await response.json();
       spreadsheetId = data.spreadsheetId;
-      projects = defaultProjects;
+      projects = customProjects;
     }
 
     async function getSheetMetadata() {
@@ -1026,7 +1114,7 @@
         document.getElementById('entry-date').value, 
         typeStr, 
         parseFloat(document.getElementById('amount').value), 
-        document.getElementById('notes').value,
+        document.getElementById('notes').value, // Now optional, defaults to "" if empty
         document.getElementById('entry-time').value
       ];
 
