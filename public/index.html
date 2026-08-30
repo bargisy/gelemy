@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
   <title>Gelemy</title>
   
-  <!-- PWA Meta Tags -->
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#1A4BAF">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,10 +12,16 @@
   <link rel="apple-touch-icon" href="/icon-192.png">
 
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: {} }
+    }
+  </script>
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
-  <!-- Register Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -28,42 +33,36 @@
   </script>
 </head>
 
-<body class="bg-gray-100 text-gray-900 font-sans m-0 p-0 flex justify-center min-h-screen">
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans m-0 p-0 flex justify-center min-h-screen transition-colors duration-300">
 
-  <!-- ================== CUSTOM UI NOTIFICATIONS & MODALS ================== -->
-  
-  <!-- Toast Notification System -->
-  <div id="toast-notification" class="fixed top-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-5 py-3 rounded-xl shadow-2xl z-[70] hidden transition-opacity flex items-center gap-3 w-[90%] max-w-sm">
+  <div id="toast-notification" class="fixed top-6 left-1/2 -translate-x-1/2 bg-gray-900 dark:bg-gray-800 border border-transparent dark:border-gray-700 text-white px-5 py-3 rounded-xl shadow-2xl z-[70] hidden transition-opacity flex items-center gap-3 w-[90%] max-w-sm">
     <span id="toast-icon" class="text-lg">✅</span>
     <span id="toast-message" class="text-sm font-medium"></span>
   </div>
 
-  <!-- Custom Prompt Modal -->
   <div id="custom-prompt-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[60] p-4 backdrop-blur-sm">
-    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 relative">
-      <h3 id="prompt-title" class="text-lg font-bold text-gray-800 mb-1"></h3>
-      <p id="prompt-message" class="text-sm text-gray-500 mb-4"></p>
-      <input type="text" id="prompt-input" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#009EFF] mb-5">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm p-6 relative">
+      <h3 id="prompt-title" class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1"></h3>
+      <p id="prompt-message" class="text-sm text-gray-500 dark:text-gray-400 mb-4"></p>
+      <input type="text" id="prompt-input" class="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#009EFF] text-gray-900 dark:text-white mb-5 placeholder-gray-400 dark:placeholder-gray-500">
       <div class="flex justify-end gap-3">
-        <button id="prompt-cancel" class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors">Cancel</button>
+        <button id="prompt-cancel" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white transition-colors">Cancel</button>
         <button id="prompt-confirm" class="px-4 py-2 text-sm font-medium bg-[#1A4BAF] text-white rounded-lg hover:bg-[#009EFF] transition-colors shadow-sm">Confirm</button>
       </div>
     </div>
   </div>
 
-  <!-- Custom Confirm Modal -->
   <div id="custom-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[60] p-4 backdrop-blur-sm">
-    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 relative">
-      <h3 id="confirm-title" class="text-lg font-bold text-gray-800 mb-2"></h3>
-      <p id="confirm-message" class="text-sm text-gray-500 mb-6 leading-relaxed"></p>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm p-6 relative">
+      <h3 id="confirm-title" class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2"></h3>
+      <p id="confirm-message" class="text-sm text-gray-500 dark:text-gray-400 mb-6 leading-relaxed"></p>
       <div class="flex justify-end gap-3">
-        <button id="confirm-cancel" class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors">Cancel</button>
+        <button id="confirm-cancel" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white transition-colors">Cancel</button>
         <button id="confirm-confirm" class="px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-sm">Delete</button>
       </div>
     </div>
   </div>
 
-  <!-- Global Install Banner -->
   <div id="install-banner" class="hidden fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-[#1A4BAF] text-white px-4 py-3 flex justify-between items-center shadow-lg z-50 transition-all pt-[max(0.75rem,env(safe-area-inset-top))]">
     <div class="flex items-center gap-3">
       <span class="text-xl">📲</span>
@@ -79,38 +78,34 @@
     </div>
   </div>
 
-  <!-- ================== APP VIEWS ================== -->
-
-  <!-- Landing / Login View -->
-  <div id="landing-view" class="w-full max-w-md bg-white min-h-screen shadow-2xl sm:border-x sm:border-gray-200 p-8 flex flex-col justify-center transition-all duration-300">
-    <div class="w-16 h-16 bg-blue-50 text-[#1A4BAF] rounded-full flex items-center justify-center mx-auto mb-6">
+  <div id="landing-view" class="w-full max-w-md bg-white dark:bg-gray-800 min-h-screen shadow-2xl sm:border-x border-gray-200 dark:border-gray-700 p-8 flex flex-col justify-center transition-all duration-300">
+    <div class="w-16 h-16 bg-blue-50 dark:bg-blue-900/30 text-[#1A4BAF] dark:text-[#60A5FA] rounded-full flex items-center justify-center mx-auto mb-6">
       <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
     </div>
-    <h1 class="text-2xl font-bold mb-2">Gelemy</h1>
-    <p class="text-gray-500 mb-8">Log daily project income and expenses directly into a secure Google Sheet.</p>
+    <h1 class="text-2xl font-bold mb-2 text-gray-900 dark:text-white">Gelemy</h1>
+    <p class="text-gray-500 dark:text-gray-400 mb-8">Log daily project income and expenses directly into a secure Google Sheet.</p>
     
     <button id="auth-btn" class="w-full bg-[#1A4BAF] hover:bg-[#009EFF] text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
       Connect Google Account
     </button>
   </div>
 
-  <!-- Onboarding View (Shown only if no DB exists) -->
-  <div id="onboarding-view" class="hidden w-full max-w-md bg-white min-h-screen shadow-2xl sm:border-x sm:border-gray-200 p-8 flex-col justify-center transition-all duration-300">
-    <div class="w-12 h-12 bg-blue-50 text-[#1A4BAF] rounded-full flex items-center justify-center mb-5">
+  <div id="onboarding-view" class="hidden w-full max-w-md bg-white dark:bg-gray-800 min-h-screen shadow-2xl sm:border-x border-gray-200 dark:border-gray-700 p-8 flex-col justify-center transition-all duration-300">
+    <div class="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 text-[#1A4BAF] dark:text-[#60A5FA] rounded-full flex items-center justify-center mb-5">
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
     </div>
-    <h2 class="text-2xl font-bold mb-2">Welcome to Gelemy</h2>
-    <p class="text-gray-500 mb-6 text-sm">Let's set up your master database in Google Sheets.</p>
+    <h2 class="text-2xl font-bold mb-2 text-gray-900 dark:text-white">Welcome to Gelemy</h2>
+    <p class="text-gray-500 dark:text-gray-400 mb-6 text-sm">Let's set up your master database in Google Sheets.</p>
     
     <div class="space-y-5">
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Database Name</label>
-        <input type="text" id="onboard-db-name" value="Gelemy Tracker" class="w-full border-gray-300 border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-[#009EFF] outline-none shadow-sm text-sm">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Database Name</label>
+        <input type="text" id="onboard-db-name" value="Gelemy Tracker" class="w-full bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-[#009EFF] outline-none shadow-sm text-sm text-gray-900 dark:text-white">
       </div>
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Initial Projects</label>
-        <p class="text-xs text-gray-400 mb-2">Enter your projects or categories, separated by commas.</p>
-        <textarea id="onboard-projects" rows="3" class="w-full border-gray-300 border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-[#009EFF] outline-none shadow-sm text-sm" placeholder="e.g., General, Upwork, Personal..."></textarea>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Initial Projects</label>
+        <p class="text-xs text-gray-400 dark:text-gray-500 mb-2">Enter your projects or categories, separated by commas.</p>
+        <textarea id="onboard-projects" rows="3" class="w-full bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-[#009EFF] outline-none shadow-sm text-sm text-gray-900 dark:text-white" placeholder="e.g., General, Upwork, Personal..."></textarea>
       </div>
       <button onclick="submitOnboarding()" id="btn-onboard-submit" class="w-full bg-[#1A4BAF] hover:bg-[#009EFF] text-white font-medium py-3 px-4 rounded-lg transition-colors mt-2 shadow-md">
         Create Database
@@ -118,26 +113,24 @@
     </div>
   </div>
 
-  <!-- Main App View -->
-  <div id="app-view" class="hidden w-full max-w-md bg-white min-h-screen shadow-2xl sm:border-x sm:border-gray-200 flex-col relative">
+  <div id="app-view" class="hidden w-full max-w-md bg-gray-50 dark:bg-gray-900 min-h-screen shadow-2xl sm:border-x border-gray-200 dark:border-gray-700 flex-col relative">
     
     <header class="sticky top-0 bg-[#1A4BAF] shadow-md p-4 z-40 pt-[max(1rem,env(safe-area-inset-top))]">
       <h2 class="text-lg font-bold text-white text-center">Gelemy</h2>
     </header>
 
-    <main class="flex-1 p-6 pb-32 bg-gray-50 z-10 min-h-screen">
+    <main class="flex-1 p-6 pb-32 z-10 min-h-screen">
 
-      <!-- ================== TAB: REPORTS ================== -->
       <div id="tab-reports" class="hidden space-y-6">
         <div>
           <div class="grid grid-cols-2 gap-3 mb-4">
             <div>
-              <label class="block text-xs font-medium text-gray-500 mb-1">Start Date</label>
-              <input type="date" id="report-start" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#009EFF] bg-white shadow-sm">
+              <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Start Date</label>
+              <input type="date" id="report-start" class="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#009EFF] shadow-sm">
             </div>
             <div>
-              <label class="block text-xs font-medium text-gray-500 mb-1">End Date</label>
-              <input type="date" id="report-end" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#009EFF] bg-white shadow-sm">
+              <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">End Date</label>
+              <input type="date" id="report-end" class="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#009EFF] shadow-sm">
             </div>
           </div>
           <button onclick="fetchAndGenerateReport()" id="btn-generate-report" class="w-full bg-[#1A4BAF] hover:bg-[#009EFF] text-white font-medium py-3 rounded-lg transition-colors text-sm shadow-md disabled:opacity-70">
@@ -147,45 +140,43 @@
 
         <div id="report-results" class="hidden space-y-4">
           
-          <div class="flex p-1 bg-gray-200 rounded-lg shadow-inner">
-            <button onclick="switchReportTab('summary')" id="subnav-summary" class="flex-1 py-1.5 text-sm font-medium bg-white shadow-sm rounded-md text-gray-800 transition-all">Summary</button>
-            <button onclick="switchReportTab('transactions')" id="subnav-transactions" class="flex-1 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-all bg-transparent">History</button>
+          <div class="flex p-1 bg-gray-200 dark:bg-gray-700 rounded-lg shadow-inner">
+            <button onclick="switchReportTab('summary')" id="subnav-summary" class="flex-1 py-1.5 text-sm font-medium bg-white dark:bg-gray-600 shadow-sm rounded-md text-gray-800 dark:text-white transition-all">Summary</button>
+            <button onclick="switchReportTab('transactions')" id="subnav-transactions" class="flex-1 py-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-all bg-transparent">History</button>
           </div>
 
           <div id="project-filter-chips" class="flex flex-wrap gap-2 mb-2"></div>
 
-          <!-- SUMMARY SUB-TAB -->
           <div id="subtab-summary" class="space-y-4">
             <div class="grid grid-cols-2 gap-3">
-              <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                <p class="text-xs font-medium text-gray-500">Filtered Income</p>
-                <p class="text-lg font-bold text-green-600" id="rep-income">$0.00</p>
+              <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Filtered Income</p>
+                <p class="text-lg font-bold text-green-600 dark:text-green-400" id="rep-income">$0.00</p>
               </div>
-              <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                <p class="text-xs font-medium text-gray-500">Filtered Expenses</p>
-                <p class="text-lg font-bold text-red-600" id="rep-expense">$0.00</p>
+              <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Filtered Expenses</p>
+                <p class="text-lg font-bold text-red-600 dark:text-red-400" id="rep-expense">$0.00</p>
               </div>
             </div>
             
-            <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col">
+            <div class="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col">
               <div class="flex justify-between items-center mb-4">
-                <p class="text-sm font-medium text-gray-500">Net Profit</p>
-                <p class="text-2xl font-bold" id="rep-net">$0.00</p>
+                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Net Profit</p>
+                <p class="text-2xl font-bold dark:text-white" id="rep-net">$0.00</p>
               </div>
               <div class="w-full h-40 relative">
                 <canvas id="profitChart"></canvas>
               </div>
             </div>
 
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden" id="rep-projects-container">
-              <div class="bg-gray-100 px-4 py-2 border-b border-gray-200">
-                <p class="text-xs font-bold text-gray-600 uppercase tracking-wider">Breakdown</p>
+            <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden" id="rep-projects-container">
+              <div class="bg-gray-100 dark:bg-gray-700 px-4 py-2 border-b border-gray-200 dark:border-gray-600">
+                <p class="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Breakdown</p>
               </div>
-              <ul id="rep-projects" class="divide-y divide-gray-100 text-sm"></ul>
+              <ul id="rep-projects" class="divide-y divide-gray-100 dark:divide-gray-700 text-sm"></ul>
             </div>
           </div>
 
-          <!-- TRANSACTIONS SUB-TAB -->
           <div id="subtab-transactions" class="hidden">
             <div id="rep-transactions"></div>
           </div>
@@ -193,22 +184,19 @@
         </div>
       </div>
 
-      <!-- ================== TAB: NEW ENTRY ================== -->
       <div id="tab-entry" class="space-y-5">
         <form id="entry-form" class="space-y-5">
           <div class="grid grid-cols-2 gap-4">
             <label class="cursor-pointer">
               <input type="radio" name="tx_type" value="Income" class="peer sr-only" required>
-              <div class="rounded-xl border-2 border-transparent bg-white p-4 flex flex-col items-center justify-center gap-2 transition-all peer-checked:border-green-500 peer-checked:bg-green-50 peer-checked:text-green-700 text-gray-400 shadow-sm hover:shadow">
-                <!-- IN Arrow -->
+              <div class="rounded-xl border-2 border-transparent bg-white dark:bg-gray-800 p-4 flex flex-col items-center justify-center gap-2 transition-all peer-checked:border-green-500 peer-checked:bg-green-50 dark:peer-checked:bg-green-900/20 peer-checked:text-green-700 dark:peer-checked:text-green-400 text-gray-400 dark:text-gray-500 shadow-sm hover:shadow">
                 <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 5L5 19m0 0V9m0 10h10"></path></svg>
                 <span class="font-medium">Income</span>
               </div>
             </label>
             <label class="cursor-pointer">
               <input type="radio" name="tx_type" value="Expense" class="peer sr-only">
-              <div class="rounded-xl border-2 border-transparent bg-white p-4 flex flex-col items-center justify-center gap-2 transition-all peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:text-red-700 text-gray-400 shadow-sm hover:shadow">
-                <!-- OUT Arrow -->
+              <div class="rounded-xl border-2 border-transparent bg-white dark:bg-gray-800 p-4 flex flex-col items-center justify-center gap-2 transition-all peer-checked:border-red-500 peer-checked:bg-red-50 dark:peer-checked:bg-red-900/20 peer-checked:text-red-700 dark:peer-checked:text-red-400 text-gray-400 dark:text-gray-500 shadow-sm hover:shadow">
                 <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19L19 5m0 0v10m0-10H9"></path></svg>
                 <span class="font-medium">Expense</span>
               </div>
@@ -217,27 +205,26 @@
 
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-              <input type="date" id="entry-date" required class="w-full border-gray-300 border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-[#009EFF] outline-none bg-white shadow-sm">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
+              <input type="date" id="entry-date" required class="w-full bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-[#009EFF] outline-none shadow-sm text-gray-900 dark:text-white">
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Time</label>
-              <input type="time" id="entry-time" required class="w-full border-gray-300 border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-[#009EFF] outline-none bg-white shadow-sm">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time</label>
+              <input type="time" id="entry-time" required class="w-full bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-[#009EFF] outline-none shadow-sm text-gray-900 dark:text-white">
             </div>
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Project</label>
-            <select id="project" required class="w-full border-gray-300 border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-[#009EFF] outline-none bg-white shadow-sm"></select>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Project</label>
+            <select id="project" required class="w-full bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-[#009EFF] outline-none shadow-sm text-gray-900 dark:text-white"></select>
           </div>
           <div>
-            <label id="amount-label" class="block text-sm font-medium text-gray-700 mb-1">Amount ($)</label>
-            <input type="number" id="amount" step="0.01" required class="w-full border-gray-300 border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-[#009EFF] outline-none shadow-sm" placeholder="0.00">
+            <label id="amount-label" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Amount ($)</label>
+            <input type="number" id="amount" step="0.01" required class="w-full bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-[#009EFF] outline-none shadow-sm placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-white" placeholder="0.00">
           </div>
           <div>
-            <!-- Notes field is now OPTIONAL (no 'required' attribute) -->
-            <label class="block text-sm font-medium text-gray-700 mb-1">Notes / Description <span class="text-xs text-gray-400 font-normal">(Optional)</span></label>
-            <input type="text" id="notes" class="w-full border-gray-300 border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-[#009EFF] outline-none shadow-sm" placeholder="e.g., Software license">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes / Description <span class="text-xs text-gray-400 dark:text-gray-500 font-normal">(Optional)</span></label>
+            <input type="text" id="notes" class="w-full bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-[#009EFF] outline-none shadow-sm placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-white" placeholder="e.g., Software license">
           </div>
           <button type="submit" id="submit-btn" class="w-full bg-[#1A4BAF] hover:bg-[#009EFF] text-white font-medium py-3 px-4 rounded-lg transition-colors mt-4 shadow-md disabled:opacity-70">
             Log Transaction
@@ -245,22 +232,20 @@
         </form>
       </div>
 
-      <!-- ================== TAB: SETTINGS ================== -->
       <div id="tab-settings" class="hidden space-y-6">
         
-        <!-- SECTION 1: Database Connection -->
-        <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm space-y-4">
+        <div class="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm space-y-4">
           <div class="flex justify-between items-center mb-1">
-            <h3 class="text-lg font-bold text-gray-800">Database</h3>
-            <button onclick="createNewTrackerManually()" id="btn-create-new" class="text-[#1A4BAF] hover:bg-blue-50 p-1.5 rounded-full transition-colors disabled:opacity-50" title="Create New Database">
+            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Database</h3>
+            <button onclick="createNewTrackerManually()" id="btn-create-new" class="text-[#1A4BAF] dark:text-[#60A5FA] hover:bg-blue-50 dark:hover:bg-blue-900/30 p-1.5 rounded-full transition-colors disabled:opacity-50" title="Create New Database">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
             </button>
           </div>
           
-          <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 break-words">
-            <p class="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-1">Connected Sheet</p>
-            <p id="current-sheet-name" class="font-medium text-gray-800 truncate">Loading details...</p>
-            <p id="current-sheet-id" class="text-[10px] text-gray-400 font-mono mt-1"></p>
+          <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-200 dark:border-gray-600 break-words">
+            <p class="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider font-bold mb-1">Connected Sheet</p>
+            <p id="current-sheet-name" class="font-medium text-gray-800 dark:text-gray-200 truncate">Loading details...</p>
+            <p id="current-sheet-id" class="text-[10px] text-gray-400 dark:text-gray-500 font-mono mt-1"></p>
           </div>
 
           <div class="grid grid-cols-2 gap-3">
@@ -268,29 +253,36 @@
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
               Open
             </a>
-            <button onclick="openDrivePicker()" class="flex justify-center items-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 rounded-lg transition-colors text-sm">
+            <button onclick="openDrivePicker()" class="flex justify-center items-center gap-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium py-2 rounded-lg transition-colors text-sm">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
               Switch
             </button>
           </div>
         </div>
 
-        <!-- SECTION 2: Project Management -->
-        <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
-          <h3 class="text-lg font-bold mb-4 text-gray-800">Projects</h3>
+        <div class="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
+          <h3 class="text-lg font-bold mb-4 text-gray-800 dark:text-white">Projects</h3>
           <div class="flex gap-2 mb-5">
-            <input type="text" id="new-project-name" placeholder="New project..." oninput="toggleAddProjectBtn()" class="flex-1 border-gray-300 border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#009EFF]">
+            <input type="text" id="new-project-name" placeholder="New project..." oninput="toggleAddProjectBtn()" class="flex-1 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#009EFF] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500">
             <button onclick="addProject()" id="add-proj-btn" disabled class="bg-[#1A4BAF] text-white px-4 py-2 rounded-lg font-medium transition text-sm disabled:opacity-50 disabled:cursor-not-allowed">Add</button>
           </div>
           <ul id="project-list" class="space-y-2"></ul>
         </div>
         
-        <!-- SECTION 3: App Preferences -->
-        <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
-          <h3 class="text-lg font-bold mb-4 text-gray-800">Preferences</h3>
+        <div class="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
+          <h3 class="text-lg font-bold mb-4 text-gray-800 dark:text-white">Preferences</h3>
+          
+          <div class="flex justify-between items-center bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-200 dark:border-gray-600 mb-4">
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Dark Mode</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="dark-mode-toggle" class="sr-only peer" onchange="toggleDarkMode(this.checked)">
+              <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-[#1A4BAF]"></div>
+            </label>
+          </div>
+
           <div>
-            <label class="block text-xs font-medium text-gray-500 mb-2">Currency Symbol</label>
-            <select id="currency-selector" onchange="changeCurrency(this.value)" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#009EFF] bg-white shadow-sm">
+            <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Currency Symbol</label>
+            <select id="currency-selector" onchange="changeCurrency(this.value)" class="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#009EFF] shadow-sm">
               <option value="$">USD ($)</option>
               <option value="E£">EGP (E£)</option>
               <option value="€">EUR (€)</option>
@@ -304,52 +296,48 @@
           </div>
         </div>
 
-        <!-- App Install Button (PWA) -->
-        <button id="install-app-btn" class="hidden w-full bg-blue-50 hover:bg-blue-100 text-[#1A4BAF] font-medium py-2.5 rounded-lg transition-colors text-sm border border-blue-200 mt-4 disabled:opacity-70">
+        <button id="install-app-btn" class="hidden w-full bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-[#1A4BAF] dark:text-[#60A5FA] font-medium py-2.5 rounded-lg transition-colors text-sm border border-blue-200 dark:border-blue-800 mt-4 disabled:opacity-70">
           📲 Install App to Home Screen
         </button>
-        <p id="ios-install-hint" class="hidden text-xs text-gray-500 text-center mt-2">To install on iOS: tap the <strong>Share</strong> button at the bottom of Safari, then select <strong>Add to Home Screen</strong>.</p>
+        <p id="ios-install-hint" class="hidden text-xs text-gray-500 dark:text-gray-400 text-center mt-2">To install on iOS: tap the <strong>Share</strong> button at the bottom of Safari, then select <strong>Add to Home Screen</strong>.</p>
 
-        <!-- Disconnect Button -->
         <div class="pt-6 pb-4 text-center">
-          <button onclick="logout()" class="text-red-500 hover:text-red-700 text-sm font-medium transition-colors underline decoration-transparent hover:decoration-red-700 underline-offset-4">
+          <button onclick="logout()" class="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-sm font-medium transition-colors underline decoration-transparent hover:decoration-red-700 dark:hover:decoration-red-300 underline-offset-4">
             Disconnect Google Account
           </button>
         </div>
       </div>
     </main>
 
-    <!-- ================== BOTTOM ICON NAVIGATION ================== -->
-    <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/95 backdrop-blur-md border-t border-gray-200 z-40 pb-[max(0px,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(0,0,0,0.05)] flex">
-      <button onclick="switchTab('reports')" id="nav-reports" class="flex-1 py-3 text-xs font-medium text-gray-400 flex flex-col items-center justify-center transition-colors">
+    <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border-t border-gray-200 dark:border-gray-700 z-40 pb-[max(0px,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.3)] flex">
+      <button onclick="switchTab('reports')" id="nav-reports" class="flex-1 py-3 text-xs font-medium text-gray-400 dark:text-gray-500 flex flex-col items-center justify-center transition-colors">
         <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
         Reports
       </button>
-      <button onclick="switchTab('entry')" id="nav-entry" class="flex-1 py-3 text-xs font-medium text-[#1A4BAF] flex flex-col items-center justify-center transition-colors">
+      <button onclick="switchTab('entry')" id="nav-entry" class="flex-1 py-3 text-xs font-medium text-[#1A4BAF] dark:text-[#60A5FA] flex flex-col items-center justify-center transition-colors">
         <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
         New Entry
       </button>
-      <button onclick="switchTab('settings')" id="nav-settings" class="flex-1 py-3 text-xs font-medium text-gray-400 flex flex-col items-center justify-center transition-colors">
+      <button onclick="switchTab('settings')" id="nav-settings" class="flex-1 py-3 text-xs font-medium text-gray-400 dark:text-gray-500 flex flex-col items-center justify-center transition-colors">
         <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
         Settings
       </button>
     </nav>
   </div>
 
-  <!-- Custom Google Drive Picker Modal -->
   <div id="drive-picker-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[60] p-4 backdrop-blur-sm">
-    <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 relative flex flex-col max-h-[80vh]">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6 relative flex flex-col max-h-[80vh]">
       <div class="flex justify-between items-center mb-4 shrink-0">
-        <h3 class="text-lg font-bold text-gray-800">Switch Database</h3>
-        <button onclick="closeDrivePicker()" class="text-gray-400 hover:text-gray-600">
+        <h3 class="text-lg font-bold text-gray-800 dark:text-white">Switch Database</h3>
+        <button onclick="closeDrivePicker()" class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
         </button>
       </div>
-      <p class="text-xs text-gray-500 mb-4 shrink-0">Select the master spreadsheet you want this device to sync with.</p>
-      <div class="flex-1 overflow-y-auto mb-4 border border-gray-100 rounded-lg bg-gray-50 p-2">
+      <p class="text-xs text-gray-500 dark:text-gray-400 mb-4 shrink-0">Select the master spreadsheet you want this device to sync with.</p>
+      <div class="flex-1 overflow-y-auto mb-4 border border-gray-100 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700 p-2">
         <ul id="drive-file-list" class="space-y-2"></ul>
         <div id="drive-picker-loading" class="text-center py-6 hidden">
-          <p class="text-sm text-gray-500">Searching your Google Drive...</p>
+          <p class="text-sm text-gray-500 dark:text-gray-400">Searching your Google Drive...</p>
         </div>
       </div>
     </div>
@@ -357,12 +345,13 @@
 
   <script>
     const CLIENT_ID = "989585036388-a9gvr4po1ol1c4urh25iegcc0cirtc06.apps.googleusercontent.com"; 
-    const SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.appdata"; 
+    const SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.appdata"; 
     
     let tokenClient;
     let accessToken = null;
     let spreadsheetId = localStorage.getItem('financial_tracker_sheet_id') || null;
     let currentCurrency = localStorage.getItem('tracker_currency') || '$';
+    let isDarkMode = localStorage.getItem('tracker_theme') === 'dark';
     
     let projects = JSON.parse(localStorage.getItem('tracker_projects')) || ["General"];
     let offlineQueue = JSON.parse(localStorage.getItem('tracker_offline_queue')) || [];
@@ -372,19 +361,36 @@
     let activeProjectFilters = new Set(); 
     let availableProjectsInDateRange = []; 
 
+    // --- THEMING LOGIC ---
+    function applyTheme() {
+      if (isDarkMode) {
+        document.documentElement.classList.add('dark');
+        document.getElementById('dark-mode-toggle').checked = true;
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.getElementById('dark-mode-toggle').checked = false;
+      }
+      
+      // Update chart dynamically if it exists
+      if (profitChartInstance && currentReportBaseData.length > 0) {
+        renderFilteredReport();
+      }
+    }
+
+    function toggleDarkMode(checked) {
+      isDarkMode = checked;
+      localStorage.setItem('tracker_theme', isDarkMode ? 'dark' : 'light');
+      applyTheme();
+    }
+
     // --- CUSTOM UI FUNCTIONS ---
     function showToast(message, isError = false) {
       const toast = document.getElementById('toast-notification');
       document.getElementById('toast-icon').innerText = isError ? '❌' : '✅';
       document.getElementById('toast-message').innerText = message;
       
-      if(isError) {
-         toast.classList.replace('bg-gray-900', 'bg-red-600');
-      } else {
-         toast.classList.replace('bg-red-600', 'bg-gray-900');
-      }
+      toast.className = `fixed top-6 left-1/2 -translate-x-1/2 text-white px-5 py-3 rounded-xl shadow-2xl z-[70] transition-opacity flex items-center gap-3 w-[90%] max-w-sm ${isError ? 'bg-red-600' : 'bg-gray-900 dark:bg-gray-800 border border-transparent dark:border-gray-700'}`;
       
-      toast.classList.remove('hidden');
       setTimeout(() => toast.classList.add('hidden'), 3500);
     }
 
@@ -477,6 +483,9 @@
       installBtn.classList.replace('bg-blue-50', 'bg-green-50');
       installBtn.classList.replace('text-[#1A4BAF]', 'text-green-700');
       installBtn.classList.replace('border-blue-200', 'border-green-200');
+      installBtn.classList.replace('dark:bg-blue-900/30', 'dark:bg-green-900/30');
+      installBtn.classList.replace('dark:text-[#60A5FA]', 'dark:text-green-400');
+      installBtn.classList.replace('dark:border-blue-800', 'dark:border-green-800');
     } else {
       window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
@@ -535,6 +544,8 @@
     }
 
     window.onload = () => {
+      applyTheme();
+      
       const today = new Date();
       document.getElementById('report-start').value = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
       document.getElementById('report-end').value = today.toISOString().split('T')[0];
@@ -587,13 +598,13 @@
       const transView = document.getElementById('subtab-transactions');
 
       if (tab === 'summary') {
-        summaryBtn.className = "flex-1 py-1.5 text-sm font-medium bg-white shadow-sm rounded-md text-gray-800 transition-all";
-        transBtn.className = "flex-1 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-all bg-transparent";
+        summaryBtn.className = "flex-1 py-1.5 text-sm font-medium bg-white dark:bg-gray-600 shadow-sm rounded-md text-gray-800 dark:text-white transition-all";
+        transBtn.className = "flex-1 py-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-all bg-transparent";
         summaryView.classList.remove('hidden');
         transView.classList.add('hidden');
       } else {
-        transBtn.className = "flex-1 py-1.5 text-sm font-medium bg-white shadow-sm rounded-md text-gray-800 transition-all";
-        summaryBtn.className = "flex-1 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-all bg-transparent";
+        transBtn.className = "flex-1 py-1.5 text-sm font-medium bg-white dark:bg-gray-600 shadow-sm rounded-md text-gray-800 dark:text-white transition-all";
+        summaryBtn.className = "flex-1 py-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-all bg-transparent";
         transView.classList.remove('hidden');
         summaryView.classList.add('hidden');
       }
@@ -603,14 +614,14 @@
       ['reports', 'entry', 'settings'].forEach(t => {
         document.getElementById(`tab-${t}`).classList.add('hidden');
         const btn = document.getElementById(`nav-${t}`);
-        btn.classList.remove('text-[#1A4BAF]');
-        btn.classList.add('text-gray-400');
+        btn.classList.remove('text-[#1A4BAF]', 'dark:text-[#60A5FA]');
+        btn.classList.add('text-gray-400', 'dark:text-gray-500');
       });
       
       document.getElementById(`tab-${tabName}`).classList.remove('hidden');
       const activeBtn = document.getElementById(`nav-${tabName}`);
-      activeBtn.classList.remove('text-gray-400');
-      activeBtn.classList.add('text-[#1A4BAF]');
+      activeBtn.classList.remove('text-gray-400', 'dark:text-gray-500');
+      activeBtn.classList.add('text-[#1A4BAF]', 'dark:text-[#60A5FA]');
       
       if(tabName === 'entry') setEntryDefaults();
       
@@ -680,21 +691,21 @@
             const isCurrent = file.id === spreadsheetId;
             list.innerHTML += `
               <li>
-                <button onclick="linkSelectedSheet('${file.id}')" ${isCurrent ? 'disabled' : ''} class="w-full text-left bg-white border ${isCurrent ? 'border-green-400 bg-green-50' : 'border-gray-200 hover:border-[#009EFF]'} p-3 rounded-lg transition-colors flex justify-between items-center group">
+                <button onclick="linkSelectedSheet('${file.id}')" ${isCurrent ? 'disabled' : ''} class="w-full text-left bg-white dark:bg-gray-700 border ${isCurrent ? 'border-green-400 dark:border-green-500 bg-green-50 dark:bg-green-900/30' : 'border-gray-200 dark:border-gray-600 hover:border-[#009EFF] dark:hover:border-[#60A5FA]'} p-3 rounded-lg transition-colors flex justify-between items-center group">
                   <div>
-                    <p class="font-bold text-sm ${isCurrent ? 'text-green-800' : 'text-gray-800 group-hover:text-[#1A4BAF]'}">${file.name} ${isCurrent ? '(Active)' : ''}</p>
-                    <p class="text-xs text-gray-500">Created: ${date}</p>
+                    <p class="font-bold text-sm ${isCurrent ? 'text-green-800 dark:text-green-400' : 'text-gray-800 dark:text-white group-hover:text-[#1A4BAF] dark:group-hover:text-[#60A5FA]'}">${file.name} ${isCurrent ? '(Active)' : ''}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Created: ${date}</p>
                   </div>
-                  <span class="text-xs font-medium text-[#009EFF] opacity-0 group-hover:opacity-100 transition-opacity">Select</span>
+                  <span class="text-xs font-medium text-[#009EFF] dark:text-[#60A5FA] opacity-0 group-hover:opacity-100 transition-opacity">Select</span>
                 </button>
               </li>`;
           });
         } else {
-          list.innerHTML = '<li class="text-sm text-gray-500 text-center py-4">No spreadsheets found.</li>';
+          list.innerHTML = '<li class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">No spreadsheets found.</li>';
         }
       } catch (err) {
         loader.classList.add('hidden');
-        list.innerHTML = `<li class="text-sm text-red-500 text-center py-4">Error: ${err.message}</li>`;
+        list.innerHTML = `<li class="text-sm text-red-500 dark:text-red-400 text-center py-4">Error: ${err.message}</li>`;
       }
     }
 
@@ -714,7 +725,6 @@
       showToast("Database switched successfully!");
     }
 
-    // Called from Settings to create a new DB
     async function createNewTrackerManually() {
       const sheetName = await showPrompt("New Database", "Enter a name for your new tracker database:", "Gelemy Tracker");
       if (!sheetName || sheetName.trim() === "") return; 
@@ -723,7 +733,6 @@
       btn.disabled = true;
 
       try {
-        // Use existing projects array so they carry over to the new DB
         const projsToCarryOver = projects.length > 0 ? projects : ["General"];
         await createMasterSheet(sheetName, projsToCarryOver); 
         await saveConfigToCloud(spreadsheetId);
@@ -743,7 +752,6 @@
       btn.disabled = false;
     }
 
-    // Called from Initial Onboarding View
     async function submitOnboarding() {
       const dbNameInput = document.getElementById('onboard-db-name').value.trim();
       const dbName = dbNameInput ? dbNameInput : 'Gelemy Tracker';
@@ -826,12 +834,10 @@
           showAppView();
           syncOfflineQueue();
         } else {
-          // NO SHEET FOUND -> SHOW ONBOARDING
           document.getElementById('landing-view').classList.add('hidden');
           document.getElementById('onboarding-view').classList.remove('hidden');
           document.getElementById('onboarding-view').classList.add('flex');
           
-          // Reset landing button just in case user refreshes
           btn.innerText = "Connect Google Account";
           btn.disabled = false;
         }
@@ -873,7 +879,6 @@
       }
     }
 
-    // Now accepts dynamic project array
     async function createMasterSheet(sheetTitle = "Gelemy Tracker", customProjects = ["General"]) {
       const projectSheets = customProjects.map(p => ({
         properties: { title: p },
@@ -952,11 +957,11 @@
       projects.forEach((p, i) => {
         select.add(new Option(p, p));
         list.innerHTML += `
-          <li class="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-100">
-            <span class="text-sm font-medium truncate flex-1">${p}</span>
+          <li class="flex justify-between items-center bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-100 dark:border-gray-600">
+            <span class="text-sm font-medium truncate flex-1 text-gray-800 dark:text-gray-200">${p}</span>
             <div class="flex gap-3 ml-2">
-              <button onclick="renameProject(${i})" class="text-xs text-blue-600 font-medium px-2 py-1 hover:bg-blue-50 rounded">Edit</button>
-              <button onclick="deleteProject(${i})" class="text-xs text-red-600 font-medium px-2 py-1 hover:bg-red-50 rounded">Del</button>
+              <button onclick="renameProject(${i})" class="text-xs text-[#1A4BAF] dark:text-[#60A5FA] font-medium px-2 py-1 hover:bg-blue-50 dark:hover:bg-gray-600 rounded transition-colors">Edit</button>
+              <button onclick="deleteProject(${i})" class="text-xs text-red-600 dark:text-red-400 font-medium px-2 py-1 hover:bg-red-50 dark:hover:bg-gray-600 rounded transition-colors">Del</button>
             </div>
           </li>`;
       });
@@ -1114,7 +1119,7 @@
         document.getElementById('entry-date').value, 
         typeStr, 
         parseFloat(document.getElementById('amount').value), 
-        document.getElementById('notes').value, // Now optional, defaults to "" if empty
+        document.getElementById('notes').value, 
         document.getElementById('entry-time').value
       ];
 
@@ -1209,7 +1214,7 @@
         const isActive = activeProjectFilters.has(proj);
         const btnClass = isActive 
           ? "px-3 py-1.5 rounded-full text-xs font-bold bg-[#1A4BAF] text-white shadow-sm transition-colors border border-transparent"
-          : "px-3 py-1.5 rounded-full text-xs font-medium bg-white text-gray-500 border border-gray-300 shadow-sm transition-colors hover:bg-gray-50";
+          : "px-3 py-1.5 rounded-full text-xs font-medium bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-300 border border-gray-300 dark:border-gray-600 shadow-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-600";
 
         container.innerHTML += `<button onclick="toggleProjectChip('${proj}')" class="${btnClass}">${proj}</button>`;
       });
@@ -1259,7 +1264,7 @@
       document.getElementById('rep-income').innerText = `${currentCurrency}${totalIncome.toFixed(2)}`;
       document.getElementById('rep-expense').innerText = `${currentCurrency}${totalExpense.toFixed(2)}`;
       document.getElementById('rep-net').innerText = `${currentCurrency}${Math.abs(net).toFixed(2)}`;
-      document.getElementById('rep-net').className = `text-2xl font-bold ${net >= 0 ? 'text-green-600' : 'text-red-600'}`;
+      document.getElementById('rep-net').className = `text-2xl font-bold ${net >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`;
 
       const sortedDates = Object.keys(dailyNetObj).sort();
       const chartLabels = [];
@@ -1276,6 +1281,9 @@
       }
 
       const ctx = document.getElementById('profitChart').getContext('2d');
+      const chartTextColor = isDarkMode ? '#e5e7eb' : '#374151'; // Taildwind gray-200 or gray-700
+      const chartGridColor = isDarkMode ? '#374151' : '#f3f4f6'; // Tailwind gray-700 or gray-100
+
       profitChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
@@ -1283,8 +1291,8 @@
           datasets: [{
             label: 'Daily Net Profit',
             data: chartData,
-            borderColor: '#1A4BAF',
-            backgroundColor: 'rgba(26, 75, 175, 0.1)',
+            borderColor: isDarkMode ? '#60A5FA' : '#1A4BAF',
+            backgroundColor: isDarkMode ? 'rgba(96, 165, 250, 0.15)' : 'rgba(26, 75, 175, 0.1)',
             borderWidth: 2,
             pointRadius: 3,
             fill: true,
@@ -1297,11 +1305,11 @@
           plugins: { legend: { display: false } },
           scales: {
             y: { 
-               ticks: { callback: function(value) { return currentCurrency + value; }, font: { size: 10 } },
-               grid: { color: '#f3f4f6' }
+               ticks: { color: chartTextColor, callback: function(value) { return currentCurrency + value; }, font: { size: 10 } },
+               grid: { color: chartGridColor }
             },
             x: {
-               ticks: { font: { size: 10 } },
+               ticks: { color: chartTextColor, font: { size: 10 } },
                grid: { display: false }
             }
           }
@@ -1311,17 +1319,17 @@
       const projList = document.getElementById('rep-projects');
       projList.innerHTML = '';
       if (Object.keys(projectStats).length === 0) {
-        projList.innerHTML = '<li class="p-4 text-gray-500 text-center italic">No data selected.</li>';
+        projList.innerHTML = '<li class="p-4 text-gray-500 dark:text-gray-400 text-center italic">No data selected.</li>';
       } else {
         for (const [projName, stats] of Object.entries(projectStats)) {
           const pNet = stats.income - stats.expense;
           projList.innerHTML += `
             <li class="px-4 py-3 flex justify-between items-center">
               <div>
-                <p class="font-bold text-gray-800">${projName}</p>
-                <p class="text-xs text-gray-500">In: ${currentCurrency}${stats.income.toFixed(2)} | Out: ${currentCurrency}${stats.expense.toFixed(2)}</p>
+                <p class="font-bold text-gray-800 dark:text-gray-200">${projName}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">In: ${currentCurrency}${stats.income.toFixed(2)} | Out: ${currentCurrency}${stats.expense.toFixed(2)}</p>
               </div>
-              <span class="font-bold ${pNet >= 0 ? 'text-green-600' : 'text-red-600'}">${pNet >= 0 ? '+' : '-'}${currentCurrency}${Math.abs(pNet).toFixed(2)}</span>
+              <span class="font-bold ${pNet >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">${pNet >= 0 ? '+' : '-'}${currentCurrency}${Math.abs(pNet).toFixed(2)}</span>
             </li>`;
         }
       }
@@ -1331,7 +1339,7 @@
       const txItems = document.getElementById('tx-items');
 
       if (filteredRows.length === 0) {
-        txItems.innerHTML = '<p class="text-sm text-gray-500 italic text-center p-4">No transactions selected.</p>';
+        txItems.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400 italic text-center p-4">No transactions selected.</p>';
       } else {
         filteredRows.sort((a, b) => {
           const dateA = a[0] + ' ' + (a[5] || '00:00');
@@ -1359,12 +1367,12 @@
           }
 
           txItems.innerHTML += `
-            <div class="bg-white p-3 rounded-lg border border-gray-100 shadow-sm flex justify-between items-center">
+            <div class="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm flex justify-between items-center">
               <div class="flex-1 min-w-0 pr-4">
-                <p class="font-bold text-sm text-gray-800 truncate">${notes}</p>
-                <p class="text-xs text-gray-500 truncate">${date} ${timeFormatted ? 'at ' + timeFormatted : ''} &bull; ${proj}</p>
+                <p class="font-bold text-sm text-gray-800 dark:text-gray-200 truncate">${notes}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${date} ${timeFormatted ? 'at ' + timeFormatted : ''} &bull; ${proj}</p>
               </div>
-              <span class="font-bold text-sm ${isIncome ? 'text-green-600' : 'text-red-600'} shrink-0">${amountStr}</span>
+              <span class="font-bold text-sm ${isIncome ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'} shrink-0">${amountStr}</span>
             </div>
           `;
         });
