@@ -52,6 +52,29 @@
     </div>
   </div>
 
+  <div id="custom-new-db-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[60] p-4 backdrop-blur-sm">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm p-6 relative">
+      <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1">Create New Database</h3>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Set up a fresh tracker sheet.</p>
+
+      <div class="space-y-4 mb-6">
+        <div>
+          <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Database Name</label>
+          <input type="text" id="new-db-name" value="Gelemy Tracker" class="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#009EFF] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Initial Projects</label>
+          <textarea id="new-db-projects" rows="2" class="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#009EFF] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" placeholder="e.g., General, Upwork..."></textarea>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-3">
+        <button id="new-db-cancel" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white transition-colors">Cancel</button>
+        <button id="new-db-confirm" class="px-4 py-2 text-sm font-medium bg-[#1A4BAF] text-white rounded-lg hover:bg-[#009EFF] transition-colors shadow-sm">Create</button>
+      </div>
+    </div>
+  </div>
+
   <div id="custom-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[60] p-4 backdrop-blur-sm">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm p-6 relative">
       <h3 id="confirm-title" class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2"></h3>
@@ -380,6 +403,37 @@
       isDarkMode = checked;
       localStorage.setItem('tracker_theme', isDarkMode ? 'dark' : 'light');
       applyTheme();
+    }
+
+    function showNewDbModal() {
+      return new Promise((resolve) => {
+        const modal = document.getElementById('custom-new-db-modal');
+        const nameInput = document.getElementById('new-db-name');
+        const projInput = document.getElementById('new-db-projects');
+
+        nameInput.value = "Gelemy Tracker";
+        projInput.value = "";
+
+        modal.classList.remove('hidden');
+
+        const confirmBtn = document.getElementById('new-db-confirm');
+        const cancelBtn = document.getElementById('new-db-cancel');
+
+        const newConfirmBtn = confirmBtn.cloneNode(true);
+        const newCancelBtn = cancelBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+        cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+        newConfirmBtn.addEventListener('click', () => {
+          modal.classList.add('hidden');
+          resolve({ name: nameInput.value, projects: projInput.value });
+        });
+
+        newCancelBtn.addEventListener('click', () => {
+          modal.classList.add('hidden');
+          resolve(null);
+        });
+      });
     }
 
     // --- CUSTOM UI FUNCTIONS ---
@@ -725,15 +779,21 @@
     }
 
     async function createNewTrackerManually() {
-      const sheetName = await showPrompt("New Database", "Enter a name for your new tracker database:", "Gelemy Tracker");
-      if (!sheetName || sheetName.trim() === "") return; 
+      const result = await showNewDbModal();
+      if (!result) return;
+      
+      const sheetName = result.name.trim() || "Gelemy Tracker";
+      let projArray = result.projects.split(',')
+                             .map(p => p.trim().replace(/['"\/\\?*[\]]/g, ''))
+                             .filter(p => p.length > 0);
+                             
+      if (projArray.length === 0) projArray = ["General"];
 
       const btn = document.getElementById('btn-create-new');
       btn.disabled = true;
 
       try {
-        const projsToCarryOver = projects.length > 0 ? projects : ["General"];
-        await createMasterSheet(sheetName, projsToCarryOver); 
+        await createMasterSheet(sheetName, projArray); 
         await saveConfigToCloud(spreadsheetId);
         localStorage.setItem("financial_tracker_sheet_id", spreadsheetId);
         
