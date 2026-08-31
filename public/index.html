@@ -5,12 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
   <title>Gelemy</title>
   
+  <!-- PWA Meta Tags -->
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#1A4BAF">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="/icon-192.png">
 
+  <!-- Tailwind CSS & Configuration for Dark Mode -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -22,6 +24,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
+  <!-- Register Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -35,11 +38,15 @@
 
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans m-0 p-0 flex justify-center min-h-screen transition-colors duration-300">
 
+  <!-- ================== CUSTOM UI NOTIFICATIONS & MODALS ================== -->
+  
+  <!-- Toast Notification System -->
   <div id="toast-notification" class="fixed top-6 left-1/2 -translate-x-1/2 bg-gray-900 dark:bg-gray-800 border border-transparent dark:border-gray-700 text-white px-5 py-3 rounded-xl shadow-2xl z-[70] hidden transition-opacity flex items-center gap-3 w-[90%] max-w-sm">
     <span id="toast-icon" class="text-lg">✅</span>
     <span id="toast-message" class="text-sm font-medium"></span>
   </div>
 
+  <!-- Custom Prompt Modal -->
   <div id="custom-prompt-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[60] p-4 backdrop-blur-sm">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm p-6 relative">
       <h3 id="prompt-title" class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1"></h3>
@@ -52,6 +59,7 @@
     </div>
   </div>
 
+  <!-- Custom Confirm Modal -->
   <div id="custom-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[60] p-4 backdrop-blur-sm">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm p-6 relative">
       <h3 id="confirm-title" class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2"></h3>
@@ -63,6 +71,7 @@
     </div>
   </div>
 
+  <!-- Global Install Banner -->
   <div id="install-banner" class="hidden fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-[#1A4BAF] text-white px-4 py-3 flex justify-between items-center shadow-lg z-50 transition-all pt-[max(0.75rem,env(safe-area-inset-top))]">
     <div class="flex items-center gap-3">
       <span class="text-xl">📲</span>
@@ -78,10 +87,14 @@
     </div>
   </div>
 
+  <!-- ================== APP VIEWS ================== -->
+
+  <!-- Landing / Login View -->
   <div id="landing-view" class="w-full max-w-md bg-white dark:bg-gray-800 min-h-screen shadow-2xl sm:border-x border-gray-200 dark:border-gray-700 p-8 flex flex-col justify-center transition-all duration-300">
-    <div class="w-16 h-16 bg-blue-50 dark:bg-blue-900/30 text-[#1A4BAF] dark:text-[#60A5FA] rounded-full flex items-center justify-center mx-auto mb-6">
-      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-    </div>
+    
+    <!-- Gelemy Custom Logo -->
+    <img src="Logo.svg" alt="Gelemy Logo" class="w-24 h-24 mx-auto mb-6 object-contain drop-shadow-sm" />
+    
     <h1 class="text-2xl font-bold mb-2 text-gray-900 dark:text-white">Gelemy</h1>
     <p class="text-gray-500 dark:text-gray-400 mb-8">Log daily project income and expenses directly into a secure Google Sheet.</p>
     
@@ -90,6 +103,7 @@
     </button>
   </div>
 
+  <!-- Onboarding View -->
   <div id="onboarding-view" class="hidden w-full max-w-md bg-white dark:bg-gray-800 min-h-screen shadow-2xl sm:border-x border-gray-200 dark:border-gray-700 p-8 flex-col justify-center transition-all duration-300">
     <div class="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 text-[#1A4BAF] dark:text-[#60A5FA] rounded-full flex items-center justify-center mb-5">
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
@@ -113,6 +127,7 @@
     </div>
   </div>
 
+  <!-- Main App View -->
   <div id="app-view" class="hidden w-full max-w-md bg-gray-50 dark:bg-gray-900 min-h-screen shadow-2xl sm:border-x border-gray-200 dark:border-gray-700 flex-col relative">
     
     <header class="sticky top-0 bg-[#1A4BAF] shadow-md p-4 z-40 pt-[max(1rem,env(safe-area-inset-top))]">
@@ -121,6 +136,7 @@
 
     <main class="flex-1 p-6 pb-32 z-10 min-h-screen">
 
+      <!-- ================== TAB: REPORTS ================== -->
       <div id="tab-reports" class="hidden space-y-6">
         <div>
           <div class="grid grid-cols-2 gap-3 mb-4">
@@ -147,6 +163,7 @@
 
           <div id="project-filter-chips" class="flex flex-wrap gap-2 mb-2"></div>
 
+          <!-- SUMMARY SUB-TAB -->
           <div id="subtab-summary" class="space-y-4">
             <div class="grid grid-cols-2 gap-3">
               <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
@@ -177,6 +194,7 @@
             </div>
           </div>
 
+          <!-- TRANSACTIONS SUB-TAB -->
           <div id="subtab-transactions" class="hidden">
             <div id="rep-transactions"></div>
           </div>
@@ -184,12 +202,14 @@
         </div>
       </div>
 
+      <!-- ================== TAB: NEW ENTRY ================== -->
       <div id="tab-entry" class="space-y-5">
         <form id="entry-form" class="space-y-5">
           <div class="grid grid-cols-2 gap-4">
             <label class="cursor-pointer">
               <input type="radio" name="tx_type" value="Income" class="peer sr-only" required>
               <div class="rounded-xl border-2 border-transparent bg-white dark:bg-gray-800 p-4 flex flex-col items-center justify-center gap-2 transition-all peer-checked:border-green-500 peer-checked:bg-green-50 dark:peer-checked:bg-green-900/20 peer-checked:text-green-700 dark:peer-checked:text-green-400 text-gray-400 dark:text-gray-500 shadow-sm hover:shadow">
+                <!-- IN Arrow -->
                 <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 5L5 19m0 0V9m0 10h10"></path></svg>
                 <span class="font-medium">Income</span>
               </div>
@@ -197,6 +217,7 @@
             <label class="cursor-pointer">
               <input type="radio" name="tx_type" value="Expense" class="peer sr-only">
               <div class="rounded-xl border-2 border-transparent bg-white dark:bg-gray-800 p-4 flex flex-col items-center justify-center gap-2 transition-all peer-checked:border-red-500 peer-checked:bg-red-50 dark:peer-checked:bg-red-900/20 peer-checked:text-red-700 dark:peer-checked:text-red-400 text-gray-400 dark:text-gray-500 shadow-sm hover:shadow">
+                <!-- OUT Arrow -->
                 <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19L19 5m0 0v10m0-10H9"></path></svg>
                 <span class="font-medium">Expense</span>
               </div>
@@ -232,8 +253,10 @@
         </form>
       </div>
 
+      <!-- ================== TAB: SETTINGS ================== -->
       <div id="tab-settings" class="hidden space-y-6">
         
+        <!-- SECTION 1: Database Connection -->
         <div class="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm space-y-4">
           <div class="flex justify-between items-center mb-1">
             <h3 class="text-lg font-bold text-gray-800 dark:text-white">Database</h3>
@@ -260,6 +283,7 @@
           </div>
         </div>
 
+        <!-- SECTION 2: Project Management -->
         <div class="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
           <h3 class="text-lg font-bold mb-4 text-gray-800 dark:text-white">Projects</h3>
           <div class="flex gap-2 mb-5">
@@ -269,9 +293,11 @@
           <ul id="project-list" class="space-y-2"></ul>
         </div>
         
+        <!-- SECTION 3: App Preferences -->
         <div class="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
           <h3 class="text-lg font-bold mb-4 text-gray-800 dark:text-white">Preferences</h3>
           
+          <!-- Dark Mode Toggle -->
           <div class="flex justify-between items-center bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-200 dark:border-gray-600 mb-4">
             <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Dark Mode</span>
             <label class="relative inline-flex items-center cursor-pointer">
@@ -296,11 +322,13 @@
           </div>
         </div>
 
+        <!-- App Install Button (PWA) -->
         <button id="install-app-btn" class="hidden w-full bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-[#1A4BAF] dark:text-[#60A5FA] font-medium py-2.5 rounded-lg transition-colors text-sm border border-blue-200 dark:border-blue-800 mt-4 disabled:opacity-70">
           📲 Install App to Home Screen
         </button>
         <p id="ios-install-hint" class="hidden text-xs text-gray-500 dark:text-gray-400 text-center mt-2">To install on iOS: tap the <strong>Share</strong> button at the bottom of Safari, then select <strong>Add to Home Screen</strong>.</p>
 
+        <!-- Disconnect Button -->
         <div class="pt-6 pb-4 text-center">
           <button onclick="logout()" class="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-sm font-medium transition-colors underline decoration-transparent hover:decoration-red-700 dark:hover:decoration-red-300 underline-offset-4">
             Disconnect Google Account
@@ -309,6 +337,7 @@
       </div>
     </main>
 
+    <!-- ================== BOTTOM ICON NAVIGATION ================== -->
     <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border-t border-gray-200 dark:border-gray-700 z-40 pb-[max(0px,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.3)] flex">
       <button onclick="switchTab('reports')" id="nav-reports" class="flex-1 py-3 text-xs font-medium text-gray-400 dark:text-gray-500 flex flex-col items-center justify-center transition-colors">
         <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
@@ -325,6 +354,7 @@
     </nav>
   </div>
 
+  <!-- Custom Google Drive Picker Modal -->
   <div id="drive-picker-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[60] p-4 backdrop-blur-sm">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6 relative flex flex-col max-h-[80vh]">
       <div class="flex justify-between items-center mb-4 shrink-0">
@@ -371,7 +401,6 @@
         document.getElementById('dark-mode-toggle').checked = false;
       }
       
-      // Update chart dynamically if it exists
       if (profitChartInstance && currentReportBaseData.length > 0) {
         renderFilteredReport();
       }
