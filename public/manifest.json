@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "Financial Tracker",
-  "short_name": "FinTrack",
+  "name": "Gelemy",
+  "short_name": "Gelemy",
   "description": "Log daily project income and expenses directly to Google Sheets.",
   "start_url": "/",
   "scope": "/",
