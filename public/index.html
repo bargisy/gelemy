@@ -596,12 +596,16 @@
       document.getElementById('entry-time').value = localISOTime.split('T')[1].substring(0, 5);
     }
 
-    window.onload = () => {
+window.onload = () => {
       applyTheme();
       
-      const today = new Date();
-      document.getElementById('report-start').value = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-      document.getElementById('report-end').value = today.toISOString().split('T')[0];
+      // Calculate local timezone date to prevent UTC offset errors
+      const now = new Date();
+      const offset = now.getTimezoneOffset() * 60000;
+      const localISODate = (new Date(Date.now() - offset)).toISOString().split('T')[0];
+      
+      document.getElementById('report-start').value = localISODate;
+      document.getElementById('report-end').value = localISODate;
       
       document.getElementById('currency-selector').value = currentCurrency;
       changeCurrency(currentCurrency);
@@ -643,7 +647,6 @@
         showAppView();
       }
     }
-
     function switchReportTab(tab) {
       const summaryBtn = document.getElementById('subnav-summary');
       const transBtn = document.getElementById('subnav-transactions');
