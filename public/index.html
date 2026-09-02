@@ -596,7 +596,7 @@
       document.getElementById('entry-time').value = localISOTime.split('T')[1].substring(0, 5);
     }
 
-window.onload = () => {
+    window.onload = () => {
       applyTheme();
       
       // Calculate local timezone date to prevent UTC offset errors
@@ -628,7 +628,8 @@ window.onload = () => {
           },
         });
 
-        document.getElementById('auth-btn').onclick = () => tokenClient.requestAccessToken({ prompt: 'consent' });
+        // Use empty prompt for frictionless reconnect if token expired but session active
+        document.getElementById('auth-btn').onclick = () => tokenClient.requestAccessToken({ prompt: '' });
       } else {
         console.warn("Offline: Google Identity script not loaded.");
         document.getElementById('auth-btn').innerText = "Offline Mode - Reconnect to Auth";
@@ -640,13 +641,26 @@ window.onload = () => {
 
       const cachedAuth = JSON.parse(localStorage.getItem('tracker_auth_token'));
       
-      if (cachedAuth && cachedAuth.token && cachedAuth.expiry > Date.now() && typeof google !== 'undefined') {
-        accessToken = cachedAuth.token;
-        initializeDatabase(); 
+      if (cachedAuth && cachedAuth.token) {
+        if (cachedAuth.expiry > Date.now() && typeof google !== 'undefined') {
+          accessToken = cachedAuth.token;
+          initializeDatabase(); 
+        } else if (spreadsheetId) {
+          if (!navigator.onLine) {
+             showAppView();
+          } else {
+             document.getElementById('auth-btn').innerText = "Reconnect Google Account";
+             document.getElementById('landing-view').classList.remove('hidden');
+             document.getElementById('landing-view').classList.add('flex');
+             document.getElementById('app-view').classList.add('hidden');
+             showToast("Session expired. Please reconnect to sync.", true);
+          }
+        }
       } else if (!navigator.onLine && spreadsheetId) {
         showAppView();
       }
     }
+
     function switchReportTab(tab) {
       const summaryBtn = document.getElementById('subnav-summary');
       const transBtn = document.getElementById('subnav-transactions');
